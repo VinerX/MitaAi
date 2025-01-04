@@ -15,9 +15,9 @@ class ChatModel:
         self.cost_response_per_1000 = 0.1728
         self.history_file = "chat_history.json"
         self.mood = 35
-        self.stress = 0
-        self.cognitive_load = 0
-        self.madness = 0
+        self.stress = 25
+        self.cognitive_load = 25
+        self.madness = 5
 
     def calculate_cost(self, user_input):
         messages = self.load_history()
