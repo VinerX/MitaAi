@@ -1,7 +1,10 @@
 import socket
-import chat_model
+from chat_model import ChatModel
+
 def generate_text(input_text):
-    return ChatModel.generate_response()
+    chat_model = ChatModel()  # Создаём экземпляр модели
+    response = chat_model.generate_response(input_text)
+    return response
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(('127.0.0.1', 12345))
