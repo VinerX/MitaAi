@@ -39,6 +39,7 @@ class ChatGUI:
 
         self.setup_mood_controls()
         self.setup_history_controls()
+        self.setup_debug_controls()
 
     def setup_mood_controls(self):
         mood_frame = tk.Frame(self.root, bg="#2c2c2c")
@@ -83,9 +84,42 @@ class ChatGUI:
         )
         clear_button.pack(side=tk.LEFT, padx=5)
 
+    def setup_debug_controls(self):
+        debug_frame = tk.Frame(self.root, bg="#2c2c2c")
+        debug_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        self.debug_window = tk.Text(
+            debug_frame, height=10, width=50, bg="#1e1e1e", fg="#ffffff",
+            state=tk.NORMAL, wrap=tk.WORD, insertbackground="white"
+        )
+        self.debug_window.pack(fill=tk.BOTH, expand=True)
+
+        self.update_debug_info()  # Отобразить изначальное состояние переменных
+
+    def update_debug_info(self):
+        """Обновить окно отладки с отображением актуальных данных."""
+        self.debug_window.delete(1.0, tk.END)  # Очистить старые данные
+        debug_info = (
+            f"Настроение: {self.model.mood}\n"
+            f"Максимальное количество токенов: {self.model.max_input_tokens}\n"
+            f"Стресс: {self.model.stress}\n"
+            f"Когнитивная нагрузка: {self.model.cognitive_load}\n"
+            f"Безумие: {self.model.madness}\n"
+        )
+        # Если история есть, выводим ее
+        if hasattr(self.model, "history") and self.model.history:
+            debug_info += "История:\n"
+            for msg in self.model.history:
+                role = "Вы" if msg["role"] == "user" else "GPT"
+                debug_info += f"{role}: {msg['content']}\n"
+        else:
+            debug_info += "История: отсутствует или не задана.\n"
+        self.debug_window.insert(tk.END, debug_info)
+
     def adjust_mood(self, amount):
         self.model.adjust_mood(amount)
         self.mood_label.config(text=f"Настроение: {self.model.mood}")
+        self.update_debug_info()
 
     def update_token_count(self, event=None):
         user_input = self.user_entry.get()
@@ -93,6 +127,7 @@ class ChatGUI:
         self.token_count_label.config(
             text=f"Токенов: {token_count}/{self.model.max_input_tokens} | Ориент. стоимость: {cost:.4f} ₽"
         )
+        self.update_debug_info()
 
     def send_message(self):
         user_input = self.user_entry.get()
@@ -104,14 +139,11 @@ class ChatGUI:
 
         response = self.model.generate_response(user_input)
         self.chat_window.insert(tk.END, f"GPT: {response}\n\n", "gpt")
+        self.update_debug_info()
 
     def load_history(self):
-        history = self.model.load_history()
-        if history:
-            self.chat_window.delete(1.0, tk.END)  # Очистить текущее окно чата
-            for msg in history:
-                role = "Вы" if msg["role"] == "user" else "GPT"
-                self.chat_window.insert(tk.END, f"{role}: {msg['content']}\n", role.lower())
+        self.model.load_history()
+        self.update_debug_info()
 
     def save_history(self):
         self.model.save_history()
@@ -119,7 +151,8 @@ class ChatGUI:
 
     def clear_history(self):
         self.model.clear_history()
-        self.chat_window.delete(1.0, tk.END)  # Очистить окно чата
+        self.chat_window.delete(1.0, tk.END)
+        self.update_debug_info()
 
     def run(self):
         self.root.mainloop()
