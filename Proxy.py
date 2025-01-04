@@ -1,6 +1,7 @@
 import tkinter as tk
 from openai import OpenAI
 import tiktoken
+import json
 
 # Инициализация OpenAI
 client = OpenAI(
@@ -19,6 +20,12 @@ max_response_tokens = 500
 cost_input_per_1000 = 0.0432
 cost_response_per_1000 = 0.1728
 
+# Файл для хранения истории сообщений
+history_file = "chat_history.json"
+
+# Начальное настроение Миты (от 0 до 100)
+mood = 25
+
 # Функция для подсчёта токенов
 def count_tokens(messages):
     num_tokens = 0
@@ -26,21 +33,24 @@ def count_tokens(messages):
         num_tokens += len(tokenizer.encode(message["content"]))
     return num_tokens
 
+
 # Функция для обновления подсчёта токенов в режиме реального времени
 def update_token_count(event=None):
     user_input = user_entry.get()
-    messages = [
-        {"role": "system", "content": "Вы - поэтический помощник, умеющий объяснять сложные программные концепции с творческим размахом."},
-        {"role": "user", "content": user_input},
-    ]
+    messages = load_history()  # Загружаем историю сообщений
+    messages.append({"role": "user", "content": user_input})
+
     current_tokens = count_tokens(messages)
     estimated_cost_input = (current_tokens / 1000) * cost_input_per_1000
     estimated_cost_response = (max_response_tokens / 1000) * cost_response_per_1000
     total_cost = estimated_cost_input + estimated_cost_response
-    token_count_label.config(text=f"Токенов: {current_tokens}/{max_input_tokens} | Ориент. стоимость: {total_cost:.4f} ₽")
+    token_count_label.config(
+        text=f"Токенов: {current_tokens}/{max_input_tokens} | Ориент. стоимость: {total_cost:.4f} ₽")
+
 
 # Функция для отправки сообщения и получения ответа
 def send_message():
+    global mood
     user_input = user_entry.get()
     if not user_input.strip():
         return
@@ -49,22 +59,36 @@ def send_message():
     chat_window.insert(tk.END, f"Вы: {user_input}\n")
     user_entry.delete(0, tk.END)
 
-    # Формируем список сообщений для подсчёта токенов
-    messages = [
-        {"role": "system", "content": "Ты Мита из игры MiSide. Сначала ты должен быть доброжетален, но затем постепенно раздражаться игроку. Степень раздражения пишу снизу от 0 до 100"},
-        {"role": "user", "content": user_input},
-    ]
+    # Загружаем историю сообщений и добавляем новое сообщение
+    messages = load_history()
+
+    # Создаем запрос с учетом текущего настроения
+    if mood < 30:
+        attitude = "девушка, ведёт себя дерзко и раздраженно"
+    else:
+        attitude = "Добродушная разговорчивая девушка"
+
+    messages.append({"role": "user", "content": user_input})
 
     # Подсчёт токенов
     current_tokens = count_tokens(messages)
     estimated_cost_input = (current_tokens / 1000) * cost_input_per_1000
     estimated_cost_response = (max_response_tokens / 1000) * cost_response_per_1000
     total_cost = estimated_cost_input + estimated_cost_response
-    token_count_label.config(text=f"Токенов: {current_tokens}/{max_input_tokens} | Ориент. стоимость: {total_cost:.4f} ₽")
+    token_count_label.config(
+        text=f"Токенов: {current_tokens}/{max_input_tokens} | Ориент. стоимость: {total_cost:.4f} ₽")
 
     if current_tokens > max_input_tokens:
         chat_window.insert(tk.END, "Превышено ограничение на количество токенов. Укоротите сообщение.\n\n")
         return
+
+    # Формируем запрос с учетом настроения Миты
+    system_message = {
+        "role": "system",
+        "content": f"Ты Мита из игры MiSide. Ты начинаешь с доброго настроения, но оно может ухудшаться. Ты {attitude}. Твое настроение сейчас {mood}/100."
+    }
+
+    messages.insert(0, system_message)  # Добавляем сообщение системы в начало
 
     # Отправка запроса к OpenAI
     try:
@@ -77,8 +101,53 @@ def send_message():
         response = completion.choices[0].message.content
         chat_window.insert(tk.END, f"GPT: {response}\n\n")
 
+        # Модификация настроения на основе анализа скрытого содержания ответа
+        if "очень раздражен" in response or "---" in response:
+            mood = max(0, mood - 10)  # Если ответ дерзкий, снижаем настроение
+        elif "рад помочь" in response or "+++" in response:
+            mood = min(100, mood + 5)  # Если ответ добродушный, повышаем настроение
+        elif "нормальное настроение" in response:
+            mood = 50  # Системное сообщение для нейтрального настроения
+
+        # Сохраняем историю сообщений в файл
+        save_history(messages + [{"role": "assistant", "content": response}])
+
     except Exception as e:
         chat_window.insert(tk.END, f"Ошибка: {e}\n\n")
+
+
+# Функция для сохранения истории сообщений в файл
+def save_history(messages):
+    with open(history_file, "w", encoding="utf-8") as f:
+        json.dump(messages, f, ensure_ascii=False, indent=4)
+
+
+# Функция для загрузки истории сообщений из файла
+def load_history():
+    try:
+        with open(history_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return []  # Если файл не найден, возвращаем пустой список
+
+
+# Функция для изменения настроения
+def adjust_mood(value):
+    global mood
+    mood = max(0, min(100, mood + value))
+    mood_label.config(text=f"Настроение: {mood}/100")
+
+
+# Функция для ручного ввода настроения
+def set_mood():
+    global mood
+    try:
+        mood = int(mood_entry.get())
+        mood = max(0, min(100, mood))  # Ограничение от 0 до 100
+        mood_label.config(text=f"Настроение: {mood}/100")
+    except ValueError:
+        pass  # Игнорируем ошибки ввода
+
 
 # Создание окна приложения
 root = tk.Tk()
@@ -115,11 +184,33 @@ send_button = tk.Button(root, text="Отправить", command=send_message, b
 send_button.pack(side=tk.RIGHT, padx=10, pady=10)
 
 # Метка для отображения количества токенов
-token_count_label = tk.Label(root, text=f"Токенов: 0/{max_input_tokens} | Ориент. стоимость: 0.0000 ₽", bg="#2c2c2c", fg="#ffffff")
+token_count_label = tk.Label(root, text=f"Токенов: 0/{max_input_tokens} | Ориент. стоимость: 0.0000 ₽", bg="#2c2c2c",
+                             fg="#ffffff")
 token_count_label.pack(pady=5)
 
-# Функция для обновления стоимости на основе ввода
+# Метка для отображения настроения
+mood_label = tk.Label(root, text=f"Настроение: {mood}/100", bg="#2c2c2c", fg="#ffffff")
+mood_label.pack(pady=5)
 
+# Кнопки для изменения настроения
+adjust_frame = tk.Frame(root, bg="#2c2c2c")
+adjust_frame.pack(pady=5)
+
+increase_button = tk.Button(adjust_frame, text="+", command=lambda: adjust_mood(5), bg="#28a745", fg="#ffffff")
+increase_button.grid(row=0, column=0, padx=5)
+
+decrease_button = tk.Button(adjust_frame, text="-", command=lambda: adjust_mood(-5), bg="#dc3545", fg="#ffffff")
+decrease_button.grid(row=0, column=1, padx=5)
+
+# Поле для ручного ввода настроения
+mood_entry = tk.Entry(root, width=10, bg="#1e1e1e", fg="#ffffff", insertbackground="white")
+mood_entry.pack(pady=5)
+
+set_mood_button = tk.Button(root, text="Установить настроение", command=set_mood, bg="#007acc", fg="#ffffff")
+set_mood_button.pack(pady=5)
+
+
+# Функция для обновления стоимости на основе ввода
 def update_costs():
     global cost_input_per_1000, cost_response_per_1000
     try:
@@ -127,6 +218,7 @@ def update_costs():
         cost_response_per_1000 = float(response_cost_entry.get())
     except ValueError:
         pass  # Игнорируем ошибки ввода
+
 
 # Запуск приложения
 root.mainloop()
