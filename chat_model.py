@@ -93,18 +93,16 @@ class ChatModel:
 
         # Первый раз - вводная
         if len(messages) == 0:
-            system_message = {
+            self.MitaMainBehaviour = {
                 "role": "system",
                 "content": (
                     f"{self.main}\n"
                 )
             }
-            self.MitaMainBehaviour = system_message
 
             system_message = {
                 "role": "system",
                 "content": (
-                    f"{self.main}\n"
                     #f"{self.examplesShort}\n"
                     f"{self.examplesLong}\n"
                     #f"{self.world}\n"
@@ -116,26 +114,24 @@ class ChatModel:
 
         elif self.mood < 50 and not self.PlayingFirst:
             print("Играет с игроком в невиновную")
-            system_message = {
+            self.MitaMainBehaviour = {
                 "role": "system",
                 "content": (
                     f"{self.mainPlaying}\n"
                 )
             }
-            self.MitaMainBehaviour = system_message
             self.PlayingFirst = True
 
         #Если секрет раскрыт
         elif self.mood < 10 or self.secretExposed and not self.secretExposedFirst:
             self.secretExposedFirst = True
 
-            system_message = {
+            self.MitaMainBehaviour = {
                 "role": "system",
                 "content": (
                     f"{self.mainCrazy}\n"
                 )
             }
-            self.MitaMainBehaviour = system_message
 
             system_message = {
                 "role": "system",
@@ -165,7 +161,13 @@ class ChatModel:
 
         # Ограничение на сообщения
         messages = messages[-self.memory_limit:]
-        messages.insert(0, self.MitaMainBehaviour) # Главный паттерн
+        # Удаляем старое системное сообщение
+        messages = [msg for msg in messages if msg.get("role") != "system" or msg != self.MitaMainBehaviour]
+
+        # Добавляем обновлённое системное сообщение
+        if self.MitaMainBehaviour not in messages:
+            messages.insert(0, self.MitaMainBehaviour)
+
         messages = self.systemMessages + messages #С учетом общего контекта
         try:
             completion = self.client.chat.completions.create(
