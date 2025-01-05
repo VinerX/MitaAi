@@ -7,9 +7,8 @@ from openai import OpenAI
 
 class ChatModel:
     def __init__(self):
-        self.client = OpenAI(api_key="sk-C85aZs33Lcl3PjjoW3ZpD50SHQvDMT6l",
+        self.client = OpenAI(api_key="",
                              base_url="https://api.proxyapi.ru/openai/v1")
-        #self.client = OpenAI(api_key="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")
         self.tokenizer = tiktoken.encoding_for_model("gpt-4o-mini")
         self.max_input_tokens = 2048
         self.max_response_tokens = 2500
