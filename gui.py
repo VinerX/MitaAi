@@ -100,8 +100,7 @@ class ChatGUI:
         """Обновить окно отладки с отображением актуальных данных."""
         self.debug_window.delete(1.0, tk.END)  # Очистить старые данные
         debug_info = (
-            f"Настроение: {self.model.mood}\n"
-            f"Максимальное количество токенов: {self.model.max_input_tokens}\n"
+            f"Отношение к игроку: {self.model.mood}\n"
             f"Стресс: {self.model.stress}\n"
             f"Когнитивная нагрузка: {self.model.cognitive_load}\n"
             f"Безумие: {self.model.madness}\n"
