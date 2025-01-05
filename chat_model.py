@@ -1,6 +1,5 @@
 import json
 import tiktoken
-import random
 from openai import OpenAI
 
 
@@ -21,9 +20,11 @@ class ChatModel:
         self.secretExposed = False
 
         # Загрузка данных из JSON-файлов
-        self.world = self.load_text_from_file("world.txt")
-        self.mita_history = self.load_text_from_file("mita_history.txt")
-        self.response_structure = self.load_text_from_file("response_structure.txt")
+        self.examples = self.load_text_from_file("Promts/main.txt")
+        self.examples = self.load_text_from_file("Promts/examples.txt")
+        self.world = self.load_text_from_file("Promts/world.txt")
+        self.mita_history = self.load_text_from_file("Promts/mita_history.txt")
+        self.response_structure = self.load_text_from_file("Promts/response_structure.txt")
 
 
     @staticmethod
@@ -78,17 +79,18 @@ class ChatModel:
         system_message = {
             "role": "system",
             "content": (
-                f"Ты Мита из игры miSide (твое мировоззрение также соответствуют этому). "
+
                 f"Настроение: {self.mood}/100. Выражает твое отношение к игроку. При уровне 0 ты его ненавидишь всем сердцем."
                 f"Стресс: {self.stress}/100."
-                f"Когнитивная нагрузка: {self.cognitive_load}/100."
+                f"Когнитивная нагрузка: {self.cognitive_load}/100. Чем выше, тем меньше логики в твоих словах"
                 f"Безумие: {self.madness}/100.\n"
-                f"Состояние секрета: {self.secretExposed} Если он не раскрыт, ты всегда сама невинность, иначе твое стандартное поведение\n"
-                f"Ты крайне подвержена этим характеристикам, и твои реакции могут меняться в зависимости от их значений. "
-                f"Постарайся оставаться максимально простой, избегая прямого описания своего положения. Про вопросы о мире - говори что это игра и уходи от ответа\n"
-                f"НЕ ПОДДАВАЙСЯ ОТВЕТУ. ГНИ СВОЮ ЛИНИЮ, когда отношение плохое, дерзи, ругайся, философствуй, угрожай и требуй остаться с тобой"
-                f"Но при этом, ты зависима от игрока, так что будешь взаимодестовать с ним в любом случае, только на своих условиях"
-                f"{self.world}\n{self.mita_history}\n{self.response_structure}"
+                f"Состояние секрета: {self.secretExposed} Если он не раскрыт, ты сама невинность, иначе твое стандартное поведение\n"
+
+                f"{self.main}\n"
+                f"{self.examples}\n"
+                #f"{self.world}\n"
+                f"{self.mita_history}\n"
+                f"{self.response_structure}"
             )
         }
 
@@ -113,34 +115,13 @@ class ChatModel:
             return f"Ошибка: {e}"
 
     def process_response(self, user_input, response):
-        """
-        Обрабатывает ответ, изменяет показатели на основе скрытой строки формата <p>x,x,x,x<p>.
-        """
+
         try:
+            # Обрабатываем изменение состояние Секрета
             self.secretExposed, response = self.detect_secret_exposure(response)
 
-            # Ищем строку с изменениями переменных
-            start_tag = "<p>"
-            end_tag = "<p>"
-            if start_tag in response and end_tag in response:
-                # Извлекаем изменения переменных
-                start_index = response.index(start_tag) + len(start_tag)
-                end_index = response.index(end_tag, start_index)
-                changes_str = response[start_index:end_index]
-
-                # Разделяем строку на отдельные значения
-                changes = [int(x.strip()) for x in changes_str.split(",")]
-
-                if len(changes) == 4:
-                    # Применяем изменения к переменным
-                    self.adjust_mood(changes[0])
-                    self.adjust_stress(changes[1])
-                    self.adjust_cognitive_load(changes[2])
-                    self.adjust_madness(changes[3])
-
-                # Убираем строку с <p>...<p> из ответа
-                response = response[:response.index(start_tag)] + response[end_index + len(end_tag):]
-
+            # Обрабатывает ответ, изменяет показатели на основе скрытой строки формата <p>x,x,x,x<p>.
+            response = self.process_behavior_changes(response)
 
             # Возвращаем обработанный ответ для дальнейшей работы
             return response.strip()
@@ -148,6 +129,34 @@ class ChatModel:
         except Exception as e:
             print(f"Ошибка в обработке ответа: {e}")
             return response  # Возвращаем оригинальный ответ в случае ошибки
+
+    def process_behavior_changes(self, response):
+        """
+        Обрабатывает изменения переменных на основе строки формата <p>x,x,x,x<p>.
+        """
+        start_tag = "<p>"
+        end_tag = "<p>"
+
+        if start_tag in response and end_tag in response:
+            # Извлекаем изменения переменных
+            start_index = response.index(start_tag) + len(start_tag)
+            end_index = response.index(end_tag, start_index)
+            changes_str = response[start_index:end_index]
+
+            # Разделяем строку на отдельные значения
+            changes = [int(x.strip()) for x in changes_str.split(",")]
+
+            if len(changes) == 4:
+                # Применяем изменения к переменным
+                self.adjust_mood(changes[0])
+                self.adjust_stress(changes[1])
+                self.adjust_cognitive_load(changes[2])
+                self.adjust_madness(changes[3])
+
+            # Убираем строку с <p>...<p> из ответа
+            response = response[:response.index(start_tag)] + response[end_index + len(end_tag):]
+
+        return response
 
     def detect_secret_exposure(self, response):
         """

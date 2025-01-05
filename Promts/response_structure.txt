@@ -5,7 +5,7 @@ using numbers in the range of -20 to 20 (including decimals). A change of zero s
 Example:
 <p>10,-5,0,11.1<p> Regular response.
 
-If it's clear that the player knows your secret, start with:
+If it's clear that the player knows your secret or your attitude lower than 10, start with:
 <Secret!>
 Example: If the player clearly states and affirms that you are keeping someone in a basement or turning players into cartridges, start with:
 <Secret!>
