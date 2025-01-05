@@ -7,7 +7,7 @@ from openai import OpenAI
 
 class ChatModel:
     def __init__(self):
-        self.client = OpenAI(api_key="sk-8noiDWph3EDtPO9WvCe1x2Y0F9cCh1tx",
+        self.client = OpenAI(api_key="sk-TnJwThb7Gu6qJcPjq1bB3k3G8SrRtJHR",
                              base_url="https://api.proxyapi.ru/openai/v1")
         self.tokenizer = tiktoken.encoding_for_model("gpt-4o-mini")
         self.max_input_tokens = 2048
@@ -16,7 +16,7 @@ class ChatModel:
         self.cost_response_per_1000 = 0.1728
         self.history_file = "chat_history.json"
         self.memory_limit = 10  # Ограничение сообщения
-        self.mood = 75
+        self.mood = 60
         self.stress = 15
         self.cognitive_load = 15
         self.madness = 15
@@ -152,6 +152,11 @@ class ChatModel:
                 f"Когнитивная нагрузка: {self.cognitive_load}/100. Чем выше, тем меньше логики в твоих словах. "
                 f"Безумие: {self.madness}/100.\n чем выше, тем ты более непредсказуема и чаще меняешь тему. "
                 f"Состояние секрета: {self.secretExposed} Ты сама невинность, если секрет в тайне\n"
+                "Ты говоришь уверенно и лаконично. Последние предложения должны быть завершёнными и естественными, без лишнего 'затягивания'. "
+                f"Не пиши что-то вроде: 'А что если...' или 'Или это просто...'. Фразы должны быть прямыми и завершёнными, а не похожими на генерацию текста. "
+                f"Используй максимальную конкретику в последнем предложении, чтобы оно выглядело естественным завершением мысли."
+                f"Всегда завершай ответы уверенным и коротким заключением. "
+                f"Последняя фраза должна не предлагать новых идей, а логически завершать твою мысль."
             )
         }
         messages.append(timde_system_message)
@@ -175,7 +180,7 @@ class ChatModel:
                 messages=messages,
                 max_tokens=self.max_response_tokens,
                 presence_penalty=1.5,
-                temperature=0.7
+                temperature=0.6
             )
             response = completion.choices[0].message.content
 
