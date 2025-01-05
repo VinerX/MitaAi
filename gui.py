@@ -38,6 +38,10 @@ class ChatGUI:
         self.token_count_label.pack(fill=tk.X, pady=5)
 
         self.setup_mood_controls()
+        self.setup_stress_controls()
+        self.setup_cognitive_load_controls()
+        self.setup_madness_controls()
+        self.setup_secret_controls()
         self.setup_history_controls()
         self.setup_debug_controls()
 
@@ -62,21 +66,84 @@ class ChatGUI:
         )
         mood_down_button.pack(side=tk.RIGHT, padx=5)
 
+    def setup_stress_controls(self):
+        stress_frame = tk.Frame(self.root, bg="#2c2c2c")
+        stress_frame.pack(fill=tk.X, pady=10)
+
+        self.stress_label = tk.Label(
+            stress_frame, text=f"Стресс: {self.model.stress}", bg="#2c2c2c", fg="#ffffff"
+        )
+        self.stress_label.pack(side=tk.LEFT, padx=5)
+
+        stress_up_button = tk.Button(
+            stress_frame, text="+", command=lambda: self.adjust_stress(5),
+            bg="#007acc", fg="#ffffff"
+        )
+        stress_up_button.pack(side=tk.RIGHT, padx=5)
+
+        stress_down_button = tk.Button(
+            stress_frame, text="-", command=lambda: self.adjust_stress(-5),
+            bg="#007acc", fg="#ffffff"
+        )
+        stress_down_button.pack(side=tk.RIGHT, padx=5)
+
+    def setup_cognitive_load_controls(self):
+        cognitive_frame = tk.Frame(self.root, bg="#2c2c2c")
+        cognitive_frame.pack(fill=tk.X, pady=10)
+
+        self.cognitive_label = tk.Label(
+            cognitive_frame, text=f"Когнитивная нагрузка: {self.model.cognitive_load}", bg="#2c2c2c", fg="#ffffff"
+        )
+        self.cognitive_label.pack(side=tk.LEFT, padx=5)
+
+        cognitive_up_button = tk.Button(
+            cognitive_frame, text="+", command=lambda: self.adjust_cognitive_load(5),
+            bg="#007acc", fg="#ffffff"
+        )
+        cognitive_up_button.pack(side=tk.RIGHT, padx=5)
+
+        cognitive_down_button = tk.Button(
+            cognitive_frame, text="-", command=lambda: self.adjust_cognitive_load(-5),
+            bg="#007acc", fg="#ffffff"
+        )
+        cognitive_down_button.pack(side=tk.RIGHT, padx=5)
+
+    def setup_madness_controls(self):
+        madness_frame = tk.Frame(self.root, bg="#2c2c2c")
+        madness_frame.pack(fill=tk.X, pady=10)
+
+        self.madness_label = tk.Label(
+            madness_frame, text=f"Безумие: {self.model.madness}", bg="#2c2c2c", fg="#ffffff"
+        )
+        self.madness_label.pack(side=tk.LEFT, padx=5)
+
+        madness_up_button = tk.Button(
+            madness_frame, text="+", command=lambda: self.adjust_madness(5),
+            bg="#007acc", fg="#ffffff"
+        )
+        madness_up_button.pack(side=tk.RIGHT, padx=5)
+
+        madness_down_button = tk.Button(
+            madness_frame, text="-", command=lambda: self.adjust_madness(-5),
+            bg="#007acc", fg="#ffffff"
+        )
+        madness_down_button.pack(side=tk.RIGHT, padx=5)
+
+    def setup_secret_controls(self):
+        secret_frame = tk.Frame(self.root, bg="#2c2c2c")
+        secret_frame.pack(fill=tk.X, pady=10)
+
+        self.secret_var = tk.BooleanVar(value=self.model.secretExposed)
+
+        secret_checkbox = tk.Checkbutton(
+            secret_frame, text="Секрет раскрыт", variable=self.secret_var,
+            bg="#2c2c2c", fg="#ffffff", command=self.adjust_secret
+        )
+        secret_checkbox.pack(side=tk.LEFT, padx=5)
+
     def setup_history_controls(self):
         history_frame = tk.Frame(self.root, bg="#2c2c2c")
         history_frame.pack(fill=tk.X, pady=10)
-
-        load_button = tk.Button(
-            history_frame, text="Загрузить историю", command=self.load_history,
-            bg="#007acc", fg="#ffffff"
-        )
-        load_button.pack(side=tk.LEFT, padx=5)
-
-        save_button = tk.Button(
-            history_frame, text="Сохранить историю", command=self.save_history,
-            bg="#007acc", fg="#ffffff"
-        )
-        save_button.pack(side=tk.LEFT, padx=5)
 
         clear_button = tk.Button(
             history_frame, text="Очистить историю", command=self.clear_history,
@@ -106,19 +173,30 @@ class ChatGUI:
             f"Безумие: {self.model.madness}\n"
             f"Секрет: {self.model.secretExposed}\n"
         )
-        # Если история есть, выводим ее
-        if hasattr(self.model, "history") and self.model.history:
-            debug_info += "История:\n"
-            for msg in self.model.history:
-                role = "Вы" if msg["role"] == "user" else "Мита"
-                debug_info += f"{role}: {msg['content']}\n"
-        else:
-            debug_info += "История: отсутствует или не задана.\n"
         self.debug_window.insert(tk.END, debug_info)
 
     def adjust_mood(self, amount):
         self.model.adjust_mood(amount)
         self.mood_label.config(text=f"Настроение: {self.model.mood}")
+        self.update_debug_info()
+
+    def adjust_stress(self, amount):
+        self.model.adjust_stress(amount)
+        self.stress_label.config(text=f"Стресс: {self.model.stress}")
+        self.update_debug_info()
+
+    def adjust_cognitive_load(self, amount):
+        self.model.adjust_cognitive_load(amount)
+        self.cognitive_label.config(text=f"Когнитивная нагрузка: {self.model.cognitive_load}")
+        self.update_debug_info()
+
+    def adjust_madness(self, amount):
+        self.model.adjust_madness(amount)
+        self.madness_label.config(text=f"Безумие: {self.model.madness}")
+        self.update_debug_info()
+
+    def adjust_secret(self):
+        self.model.adjust_secret(self.secret_var.get())
         self.update_debug_info()
 
     def update_token_count(self, event=None):
@@ -138,16 +216,8 @@ class ChatGUI:
         self.user_entry.delete(0, tk.END)
 
         response = self.model.generate_response(user_input)
-        self.chat_window.insert(tk.END, f"GPT: {response}\n\n", "gpt")
+        self.chat_window.insert(tk.END, f"Мита: {response}\n\n", "gpt")
         self.update_debug_info()
-
-    def load_history(self):
-        self.model.load_history()
-        self.update_debug_info()
-
-    def save_history(self):
-        self.model.save_history()
-        self.chat_window.insert(tk.END, "История сохранена.\n", "system")
 
     def clear_history(self):
         self.model.clear_history()
