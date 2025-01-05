@@ -55,13 +55,13 @@ class ChatGUI:
         self.mood_label.pack(side=tk.LEFT, padx=5)
 
         mood_up_button = tk.Button(
-            mood_frame, text="+", command=lambda: self.adjust_mood(5),
+            mood_frame, text="+", command=lambda: self.adjust_mood(15),
             bg="#007acc", fg="#ffffff"
         )
         mood_up_button.pack(side=tk.RIGHT, padx=5)
 
         mood_down_button = tk.Button(
-            mood_frame, text="-", command=lambda: self.adjust_mood(-5),
+            mood_frame, text="-", command=lambda: self.adjust_mood(-15),
             bg="#007acc", fg="#ffffff"
         )
         mood_down_button.pack(side=tk.RIGHT, padx=5)
@@ -76,13 +76,13 @@ class ChatGUI:
         self.stress_label.pack(side=tk.LEFT, padx=5)
 
         stress_up_button = tk.Button(
-            stress_frame, text="+", command=lambda: self.adjust_stress(5),
+            stress_frame, text="+", command=lambda: self.adjust_stress(15),
             bg="#007acc", fg="#ffffff"
         )
         stress_up_button.pack(side=tk.RIGHT, padx=5)
 
         stress_down_button = tk.Button(
-            stress_frame, text="-", command=lambda: self.adjust_stress(-5),
+            stress_frame, text="-", command=lambda: self.adjust_stress(-15),
             bg="#007acc", fg="#ffffff"
         )
         stress_down_button.pack(side=tk.RIGHT, padx=5)
@@ -97,13 +97,13 @@ class ChatGUI:
         self.cognitive_label.pack(side=tk.LEFT, padx=5)
 
         cognitive_up_button = tk.Button(
-            cognitive_frame, text="+", command=lambda: self.adjust_cognitive_load(5),
+            cognitive_frame, text="+", command=lambda: self.adjust_cognitive_load(15),
             bg="#007acc", fg="#ffffff"
         )
         cognitive_up_button.pack(side=tk.RIGHT, padx=5)
 
         cognitive_down_button = tk.Button(
-            cognitive_frame, text="-", command=lambda: self.adjust_cognitive_load(-5),
+            cognitive_frame, text="-", command=lambda: self.adjust_cognitive_load(-15),
             bg="#007acc", fg="#ffffff"
         )
         cognitive_down_button.pack(side=tk.RIGHT, padx=5)
@@ -118,13 +118,13 @@ class ChatGUI:
         self.madness_label.pack(side=tk.LEFT, padx=5)
 
         madness_up_button = tk.Button(
-            madness_frame, text="+", command=lambda: self.adjust_madness(5),
+            madness_frame, text="+", command=lambda: self.adjust_madness(15),
             bg="#007acc", fg="#ffffff"
         )
         madness_up_button.pack(side=tk.RIGHT, padx=5)
 
         madness_down_button = tk.Button(
-            madness_frame, text="-", command=lambda: self.adjust_madness(-5),
+            madness_frame, text="-", command=lambda: self.adjust_madness(-15),
             bg="#007acc", fg="#ffffff"
         )
         madness_down_button.pack(side=tk.RIGHT, padx=5)
@@ -196,7 +196,7 @@ class ChatGUI:
         self.update_debug_info()
 
     def adjust_secret(self):
-        self.model.adjust_secret(self.secret_var.get())
+        self.model.secretExposed = not self.model.secretExposed
         self.update_debug_info()
 
     def update_token_count(self, event=None):

@@ -4,30 +4,34 @@ import requests
 import tiktoken
 from openai import OpenAI
 
+
 class ChatModel:
     def __init__(self):
-        self.client = OpenAI(api_key="sk-C85aZs33Lcl3PjjoW3ZpD50SHQvDMT6l",base_url="https://api.proxyapi.ru/openai/v1")
+        self.client = OpenAI(api_key="sk-C85aZs33Lcl3PjjoW3ZpD50SHQvDMT6l",
+                             base_url="https://api.proxyapi.ru/openai/v1")
         #self.client = OpenAI(api_key="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")
         self.tokenizer = tiktoken.encoding_for_model("gpt-4o-mini")
         self.max_input_tokens = 2048
-        self.max_response_tokens = 500
+        self.max_response_tokens = 2500
         self.cost_input_per_1000 = 0.0432
         self.cost_response_per_1000 = 0.1728
         self.history_file = "chat_history.json"
         self.memory_limit = 30  # Ограничение сообщения
-        self.mood = 50
+        self.mood = 75
         self.stress = 15
         self.cognitive_load = 15
         self.madness = 15
         self.secretExposed = False
-
+        self.secretExposedFirst = False
         # Загрузка данных из JSON-файлов
-        self.main = self.load_text_from_file("Promts/main.txt")
-        self.examplesLong = self.load_text_from_file("Promts/examples.txt")
-        self.examplesShort = self.load_text_from_file("Promts/examples2.txt")
-        self.world = self.load_text_from_file("Promts/world.txt")
-        self.mita_history = self.load_text_from_file("Promts/mita_history.txt")
-        self.response_structure = self.load_text_from_file("Promts/response_structure.txt")
+        self.main = self.load_text_from_file("Promts/Main/main.txt")
+        self.mainCrazy = self.load_text_from_file("Promts/Main/mainCrazy.txt")
+        self.examplesLong = self.load_text_from_file("Promts/Context/examplesLong.txt")
+        self.examplesLongCrazy = self.load_text_from_file("Promts/Context/examplesLongCrazy.txt")
+        self.examplesShort = self.load_text_from_file("Promts/Context/examplesShort.txt")
+        self.world = self.load_text_from_file("Promts/Context/world.txt")
+        self.mita_history = self.load_text_from_file("Promts/Context/mita_history.txt")
+        self.response_structure = self.load_text_from_file("Promts/Structural/response_structure.txt")
 
         self.HideAiData = False
         #print_ip_and_country()
@@ -57,39 +61,38 @@ class ChatModel:
         return sum(len(self.tokenizer.encode(msg["content"])) for msg in messages)
 
     def adjust_mood(self, amount):
+        amount = clamp(amount, -20, 20) * 0.25
         """Корректируем настроение."""
-        self.mood = max(0, min(100, self.mood + amount))
+        self.mood = clamp(self.mood + amount, 0, 100)
         print(f"Отношение изменилось на {amount}, новое значение: {self.mood}")
 
     def adjust_stress(self, amount):
+        amount = clamp(amount, -20, 20) * 0.25
         """Корректируем уровень стресса."""
-        self.stress = max(0, min(100, self.stress + amount))
+        self.stress = clamp(self.stress + amount, 0, 100)
         print(f"Стресс изменился на {amount}, новое значение: {self.stress}")
 
     def adjust_cognitive_load(self, amount):
+        amount = clamp(amount, -20, 20) * 0.25
         """Корректируем когнитивную нагрузку."""
-        self.cognitive_load = max(0, min(100, self.cognitive_load + amount))
+        self.cognitive_load = clamp(self.cognitive_load + amount, 0, 100)
         print(f"Когнитивная нагрузка изменена на {amount}, новое значение: {self.cognitive_load}")
 
     def adjust_madness(self, amount):
+        amount = clamp(amount, -20, 20) * 0.25
         """Корректируем уровень безумия."""
-        self.madness = max(0, min(100, self.madness + amount))
+        self.madness = clamp(self.madness + amount, 0, 100)
         print(f"Безумие изменилось на {amount}, новое значение: {self.madness}")
 
     def generate_response(self, user_input):
         messages = self.load_history()
 
+        # Первый раз - вводная
         if len(messages) == 0:
-            # Система — начальное сообщение с настроением и текущими значениями
             system_message = {
                 "role": "system",
                 "content": (
                     f"{self.main}\n"
-                    f"Настроение: {self.mood}/100. Выражает твое отношение к игроку. При уровне 0 ты его ненавидишь всем сердцем."
-                    f"Стресс: {self.stress}/100. Чем выше, тем отчаяннее ты говоришь и действуешь"
-                    f"Когнитивная нагрузка: {self.cognitive_load}/100. Чем выше, тем меньше логики в твоих словах"
-                    f"Безумие: {self.madness}/100.\n чем выше, тем ты более непредсказуема и чаще меняешь тему"
-                    f"Состояние секрета: {self.secretExposed} Если он не раскрыт, ты сама невинность, иначе твое стандартное злое поведение\n"
                     #f"{self.examplesShort}\n"
                     f"{self.examplesLong}\n"
                     #f"{self.world}\n"
@@ -98,8 +101,34 @@ class ChatModel:
                 )
             }
             messages.insert(0, system_message)
+        #Если секрет раскрыт
+        elif self.secretExposed and not self.secretExposedFirst:
+            self.secretExposedFirst = True
+            system_message = {
+                "role": "system",
+                "content": (
+                    f"{self.mainCrazy}\n"
+                    f"Оформи свое новое отношение к игроку корректно. Например, что зря был любопытным или был слишком скучным"
+                    f"{self.examplesLongCrazy}\n"
+                )
+            }
+            messages.append(system_message)
 
+        # Текущее настроение
+        system_message = {
+            "role": "system",
+            "content": (
+                f"Твои характеристики"
+                f"Настроение: {self.mood}/100. Выражает твое отношение к игроку. 0 Полностью ненависть, 100 Полная любовь."
+                f"Стресс: {self.stress}/100. Чем выше, тем отчаяннее ты говоришь и действуешь."
+                f"Когнитивная нагрузка: {self.cognitive_load}/100. Чем выше, тем меньше логики в твоих словах."
+                f"Безумие: {self.madness}/100.\n чем выше, тем ты более непредсказуема и чаще меняешь тему."
+                f"Состояние секрета: {self.secretExposed} Ты сама невинность, если секрет в тайне\n"
+            )
+        }
+        messages.append(system_message)
 
+        #Речь игрока
         messages.append({"role": "user", "content": user_input})
 
         # Ограничение на 5 сообщений
@@ -109,7 +138,9 @@ class ChatModel:
             completion = self.client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=messages,
-                max_tokens=self.max_response_tokens
+                max_tokens=self.max_response_tokens,
+                presence_penalty=1.5,
+                temperature=0.7
             )
             response = completion.choices[0].message.content
 
@@ -152,7 +183,7 @@ class ChatModel:
             changes_str = response[start_index:end_index]
 
             # Разделяем строку на отдельные значения
-            changes = [int(x.strip()) for x in changes_str.split(",")]
+            changes = [float(x.strip()) for x in changes_str.split(",")]
 
             if len(changes) == 4:
                 # Применяем изменения к переменным
@@ -171,11 +202,11 @@ class ChatModel:
         """
         Проверяем, содержит ли ответ маркер <Secret!>, и удаляем его.
         """
-        if "<Secret!>" in response or self.mood <= 10:
+        if "<Secret!>" in response or self.mood <= 10 and self.secretExposedFirst:
             self.secretExposed = True
             print(f"Секрет раскрыт")
-            self.mood-=40
-            self.madness+=30
+            self.adjust_mood(-30)
+            self.adjust_madness(30)
             if self.HideAiData:
                 response = response.replace("<Secret!>", "")
             return True, response
@@ -202,6 +233,11 @@ class ChatModel:
     def clear_history(self):
         """Очищаем историю чатов."""
         self.save_history([])  # Сохраняем пустую историю
+
+
+def clamp(value, min_value, max_value):
+    return max(min_value, min(value, max_value))
+
 
 def print_ip_and_country():
     try:
