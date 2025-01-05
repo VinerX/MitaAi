@@ -7,7 +7,7 @@ from openai import OpenAI
 
 class ChatModel:
     def __init__(self):
-        self.client = OpenAI(api_key="",
+        self.client = OpenAI(api_key="sk-8noiDWph3EDtPO9WvCe1x2Y0F9cCh1tx",
                              base_url="https://api.proxyapi.ru/openai/v1")
         self.tokenizer = tiktoken.encoding_for_model("gpt-4o-mini")
         self.max_input_tokens = 2048
@@ -15,7 +15,7 @@ class ChatModel:
         self.cost_input_per_1000 = 0.0432
         self.cost_response_per_1000 = 0.1728
         self.history_file = "chat_history.json"
-        self.memory_limit = 30  # Ограничение сообщения
+        self.memory_limit = 10  # Ограничение сообщения
         self.mood = 75
         self.stress = 15
         self.cognitive_load = 15
@@ -24,7 +24,10 @@ class ChatModel:
         self.secretExposedFirst = False
         # Загрузка данных из JSON-файлов
         self.main = self.load_text_from_file("Promts/Main/main.txt")
+        self.mainPlaying = self.load_text_from_file("Promts/Main/mainPlaing.txt")
+        self.PlayingFirst = False
         self.mainCrazy = self.load_text_from_file("Promts/Main/mainCrazy.txt")
+
         self.examplesLong = self.load_text_from_file("Promts/Context/examplesLong.txt")
         self.examplesLongCrazy = self.load_text_from_file("Promts/Context/examplesLongCrazy.txt")
         self.examplesShort = self.load_text_from_file("Promts/Context/examplesShort.txt")
@@ -32,6 +35,8 @@ class ChatModel:
         self.mita_history = self.load_text_from_file("Promts/Context/mita_history.txt")
         self.response_structure = self.load_text_from_file("Promts/Structural/response_structure.txt")
 
+        self.MitaMainBehaviour = []
+        self.systemMessages = []
         self.HideAiData = False
         #print_ip_and_country()
 
@@ -60,25 +65,25 @@ class ChatModel:
         return sum(len(self.tokenizer.encode(msg["content"])) for msg in messages)
 
     def adjust_mood(self, amount):
-        amount = clamp(amount, -20, 20) * 0.25
+        amount = clamp(amount, -20, 20)
         """Корректируем настроение."""
         self.mood = clamp(self.mood + amount, 0, 100)
         print(f"Отношение изменилось на {amount}, новое значение: {self.mood}")
 
     def adjust_stress(self, amount):
-        amount = clamp(amount, -20, 20) * 0.25
+        amount = clamp(amount, -20, 20)
         """Корректируем уровень стресса."""
         self.stress = clamp(self.stress + amount, 0, 100)
         print(f"Стресс изменился на {amount}, новое значение: {self.stress}")
 
     def adjust_cognitive_load(self, amount):
-        amount = clamp(amount, -20, 20) * 0.25
+        amount = clamp(amount, -20, 20)
         """Корректируем когнитивную нагрузку."""
         self.cognitive_load = clamp(self.cognitive_load + amount, 0, 100)
         print(f"Когнитивная нагрузка изменена на {amount}, новое значение: {self.cognitive_load}")
 
     def adjust_madness(self, amount):
-        amount = clamp(amount, -20, 20) * 0.25
+        amount = clamp(amount, -20, 20)
         """Корректируем уровень безумия."""
         self.madness = clamp(self.madness + amount, 0, 100)
         print(f"Безумие изменилось на {amount}, новое значение: {self.madness}")
@@ -92,6 +97,14 @@ class ChatModel:
                 "role": "system",
                 "content": (
                     f"{self.main}\n"
+                )
+            }
+            self.MitaMainBehaviour = system_message
+
+            system_message = {
+                "role": "system",
+                "content": (
+                    f"{self.main}\n"
                     #f"{self.examplesShort}\n"
                     f"{self.examplesLong}\n"
                     #f"{self.world}\n"
@@ -99,40 +112,61 @@ class ChatModel:
                     f"{self.response_structure}"
                 )
             }
-            messages.insert(0, system_message)
+            self.systemMessages.insert(0, system_message)
+
+        elif self.mood < 50 and not self.PlayingFirst:
+            print("Играет с игроком в невиновную")
+            system_message = {
+                "role": "system",
+                "content": (
+                    f"{self.mainPlaying}\n"
+                )
+            }
+            self.MitaMainBehaviour = system_message
+            self.PlayingFirst = True
+
         #Если секрет раскрыт
-        elif self.secretExposed and not self.secretExposedFirst:
+        elif self.mood < 10 or self.secretExposed and not self.secretExposedFirst:
             self.secretExposedFirst = True
+
             system_message = {
                 "role": "system",
                 "content": (
                     f"{self.mainCrazy}\n"
+                )
+            }
+            self.MitaMainBehaviour = system_message
+
+            system_message = {
+                "role": "system",
+                "content": (
                     f"Оформи свое новое отношение к игроку корректно. Например, что зря был любопытным или был слишком скучным"
                     f"{self.examplesLongCrazy}\n"
                 )
             }
-            messages.append(system_message)
+            self.systemMessages.append(system_message)
 
         # Текущее настроение
-        system_message = {
+        timde_system_message = {
             "role": "system",
             "content": (
-                f"Твои характеристики"
-                f"Настроение: {self.mood}/100. Выражает твое отношение к игроку. 0 Полностью ненависть, 100 Полная любовь."
-                f"Стресс: {self.stress}/100. Чем выше, тем отчаяннее ты говоришь и действуешь."
-                f"Когнитивная нагрузка: {self.cognitive_load}/100. Чем выше, тем меньше логики в твоих словах."
-                f"Безумие: {self.madness}/100.\n чем выше, тем ты более непредсказуема и чаще меняешь тему."
+                f"Твои характеристики. "
+                f"Настроение: {self.mood}/100. Выражает твое отношение к игроку. 0 Полностью ненависть, 100 Полная любовь. "
+                f"Стресс: {self.stress}/100. Чем выше, тем отчаяннее ты говоришь и действуешь. "
+                f"Когнитивная нагрузка: {self.cognitive_load}/100. Чем выше, тем меньше логики в твоих словах. "
+                f"Безумие: {self.madness}/100.\n чем выше, тем ты более непредсказуема и чаще меняешь тему. "
                 f"Состояние секрета: {self.secretExposed} Ты сама невинность, если секрет в тайне\n"
             )
         }
-        messages.append(system_message)
+        messages.append(timde_system_message)
 
         #Речь игрока
         messages.append({"role": "user", "content": user_input})
 
-        # Ограничение на 5 сообщений
-        #messages = messages[-self.memory_limit:]
-
+        # Ограничение на сообщения
+        messages = messages[-self.memory_limit:]
+        messages.insert(0, self.MitaMainBehaviour) # Главный паттерн
+        messages = self.systemMessages + messages #С учетом общего контекта
         try:
             completion = self.client.chat.completions.create(
                 model="gpt-4o-mini",
