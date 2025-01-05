@@ -2,7 +2,6 @@ import json
 import tiktoken
 from openai import OpenAI
 
-
 class ChatModel:
     def __init__(self):
         self.client = OpenAI(api_key="sk-C85aZs33Lcl3PjjoW3ZpD50SHQvDMT6l",
@@ -13,6 +12,7 @@ class ChatModel:
         self.cost_input_per_1000 = 0.0432
         self.cost_response_per_1000 = 0.1728
         self.history_file = "chat_history.json"
+        self.memory_limit = 5  # Ограничение на 5 сообщений
         self.mood = 70
         self.stress = 15
         self.cognitive_load = 15
@@ -20,12 +20,11 @@ class ChatModel:
         self.secretExposed = False
 
         # Загрузка данных из JSON-файлов
-        self.examples = self.load_text_from_file("Promts/main.txt")
-        self.examples = self.load_text_from_file("Promts/examples.txt")
+        self.main = self.load_text_from_file("Promts/main.txt")
+        self.examples = self.load_text_from_file("Promts/examples2.txt")
         self.world = self.load_text_from_file("Promts/world.txt")
         self.mita_history = self.load_text_from_file("Promts/mita_history.txt")
         self.response_structure = self.load_text_from_file("Promts/response_structure.txt")
-
 
     @staticmethod
     def load_text_from_file(file_path):
@@ -79,7 +78,6 @@ class ChatModel:
         system_message = {
             "role": "system",
             "content": (
-
                 f"Настроение: {self.mood}/100. Выражает твое отношение к игроку. При уровне 0 ты его ненавидишь всем сердцем."
                 f"Стресс: {self.stress}/100."
                 f"Когнитивная нагрузка: {self.cognitive_load}/100. Чем выше, тем меньше логики в твоих словах"
@@ -96,6 +94,9 @@ class ChatModel:
 
         messages.insert(0, system_message)
         messages.append({"role": "user", "content": user_input})
+
+        # Ограничение на 5 сообщений
+        messages = messages[-self.memory_limit:]
 
         try:
             completion = self.client.chat.completions.create(
@@ -117,7 +118,7 @@ class ChatModel:
     def process_response(self, user_input, response):
 
         try:
-            # Обрабатываем изменение состояние Секрета
+            # Обрабатываем изменение состояния Секрета
             self.secretExposed, response = self.detect_secret_exposure(response)
 
             # Обрабатывает ответ, изменяет показатели на основе скрытой строки формата <p>x,x,x,x<p>.
@@ -195,7 +196,7 @@ class ChatModel:
                 self.stress = state.get("stress")
                 self.cognitive_load = state.get("cognitive_load")
                 self.madness = state.get("madness")
-                return data.get("messages", [])
+                return data.get("messages", [])[-self.memory_limit:]  # Загружаем только последние 5 сообщений
         except FileNotFoundError:
             return []
 
