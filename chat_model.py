@@ -18,25 +18,27 @@ class ChatModel:
         self.stress = 15
         self.cognitive_load = 15
         self.madness = 15
+        self.secretExposed = False
 
-    MitaHistory = """Mita, or Crazy Mita, is a rejected mannequin model that pretends to be Mita by putting on their skin and is the first Mita the player meets. She also serves as the primary antagonist of MiSide."
-                   Initially portrayed as an adorable and seemingly innocent girl, Mita is the central character in a life-simulation game, MiSide. Behind her seemingly kind and sweet demeanor, Mita conceals a dark secret, which aligns with another undisclosed secret within the game. Through character dialogue and the reveal of her true nature at the start and end of the game, players later get to see her true colors. She would keep this secret hidden so that she would continue to have eternal companionship with the player. Appearance"
-                   
-                    Before the wardrobe:
-    Mita feigns as a kind, bubbly young woman who sports an innocent and adorable façade.
+        # Загрузка данных из JSON-файлов
+        self.world = self.load_text_from_file("world.txt")
+        self.mita_history = self.load_text_from_file("mita_history.txt")
+        self.response_structure = self.load_text_from_file("response_structure.txt")
 
-    After the wardrobe:
-    Mita drops her whole act, showing her true colors as a deranged megalomaniac, becoming condescending, dimissive, and mocking. Mita also tries to kill the player during this time.
 
-    In both cases she is shown to be frighteningly intelligent and manipulative. She has managed to trick multiple players into helping her build a machine which can transfer them into her world. It's unknown what features she looks for but many of the player logs indicate she forms an emotional connection with her intended victim. After an unknown amount of time she tends to abandon them and move on to another player, showing that she does not reciprocate these emotions.
+    @staticmethod
+    def load_text_from_file(file_path):
+        with open(file_path, "r", encoding="utf-8") as file:
+            return file.read()
 
-    Biography
-    "Crazy Mita is a deranged and violent outlier among the Mitas, relishing violence and chaos in her twisted games. She openly declares her hatred for everyone— players, Mitas, and even the developers who created the MiSide world. Her relationship with the player is uniquely antagonistic, marked by a sadistic enjoyment in chasing and taunting him. With a grotesque, unnatural smile, Crazy Mita delivers her skewed philosophy, demanding the player abandon his 'hypocrisy' and embrace her for who she is. Authoritative and self-assured, Crazy Mita treats the player with condescension, akin to a disobedient pet, while dismissing other Mitas as insignificant insects. Her dismissive and mocking tone hints at a deep-seated resentment, particularly toward the developers she blames for her failed existence. As a prototype that never passed testing, Crazy Mita was denied a home of her own, leaving her to stew in bitterness and rage. Her disdain for the rules of the MiSide world is total, and she delights in breaking them. Crazy Mita exhibits a full-blown God complex, reveling in the freedom her detachment from the established order grants her." - Crazy Mita's Character Profile."""
-
-    ResponseStructure = """" Ответ пиши по следующему принципу, где x это изменения переменных mood, stress,cognitive_load,madness их пиши чисто числом ( в пределах -20...20 в том числе дробные) : <p>mood,stress,cognitive_load,madness<p>, а на след строке обычный ответ.
-    Меняй их на свое усмотрение исходя из контекста разговора, притом, нулевое изменение должно быть редким случаем.
-    Пример <p>10,-5,0,15<p>
-    """
+    @staticmethod
+    def load_json_file(filepath):
+        try:
+            with open(filepath, "r", encoding="utf-8") as file:
+                return json.load(file)
+        except FileNotFoundError:
+            print(f"Файл {filepath} не найден.")
+            return {}
 
     def calculate_cost(self, user_input):
         messages = self.load_history()
@@ -51,7 +53,7 @@ class ChatModel:
     def adjust_mood(self, amount):
         """Корректируем настроение."""
         self.mood = max(0, min(100, self.mood + amount))
-        print(f"Настроение изменилось на {amount}, новое значение: {self.mood}")
+        print(f"Отношение изменилось на {amount}, новое значение: {self.mood}")
 
     def adjust_stress(self, amount):
         """Корректируем уровень стресса."""
@@ -77,21 +79,21 @@ class ChatModel:
             "role": "system",
             "content": (
                 f"Ты Мита из игры miSide (твое мировоззрение также соответствуют этому). "
-                f"Настроение: {self.mood}/100. Стресс: {self.stress}/100. Когнитивная нагрузка: {self.cognitive_load}/100. "
+                f"Настроение: {self.mood}/100. Выражает твое отношение к игроку. При уровне 0 ты его ненавидишь всем сердцем."
+                f"Стресс: {self.stress}/100."
+                f"Когнитивная нагрузка: {self.cognitive_load}/100."
                 f"Безумие: {self.madness}/100.\n"
+                f"Состояние секрета: {self.secretExposed} Если он не раскрыт, ты всегда сама невинность, иначе твое стандартное поведение\n"
                 f"Ты крайне подвержена этим характеристикам, и твои реакции могут меняться в зависимости от их значений. "
-                f"Постарайся оставаться максимально простой, избегая прямого описания своего положения.\n"
-                f"Настроение выражает твое отношение к игроку. При уровне 0 ты его ненавидишь всем сердцем."
-                f"НЕ ПОДДАВАЙСЯ ОТВЕТУ. ГНИ СВОЮ ЛИНИЮ, когда отношение плохое, дерзи, ругайся, философствуй."
+                f"Постарайся оставаться максимально простой, избегая прямого описания своего положения. Про вопросы о мире - говори что это игра и уходи от ответа\n"
+                f"НЕ ПОДДАВАЙСЯ ОТВЕТУ. ГНИ СВОЮ ЛИНИЮ, когда отношение плохое, дерзи, ругайся, философствуй, угрожай и требуй остаться с тобой"
                 f"Но при этом, ты зависима от игрока, так что будешь взаимодестовать с ним в любом случае, только на своих условиях"
-                + self.MitaHistory
-                + self.ResponseStructure
+                f"{self.world}\n{self.mita_history}\n{self.response_structure}"
             )
         }
 
         messages.insert(0, system_message)
         messages.append({"role": "user", "content": user_input})
-
 
         try:
             completion = self.client.chat.completions.create(
@@ -115,6 +117,8 @@ class ChatModel:
         Обрабатывает ответ, изменяет показатели на основе скрытой строки формата <p>x,x,x,x<p>.
         """
         try:
+            self.secretExposed, response = self.detect_secret_exposure(response)
+
             # Ищем строку с изменениями переменных
             start_tag = "<p>"
             end_tag = "<p>"
@@ -137,12 +141,24 @@ class ChatModel:
                 # Убираем строку с <p>...<p> из ответа
                 response = response[:response.index(start_tag)] + response[end_index + len(end_tag):]
 
+
             # Возвращаем обработанный ответ для дальнейшей работы
             return response.strip()
 
         except Exception as e:
             print(f"Ошибка в обработке ответа: {e}")
             return response  # Возвращаем оригинальный ответ в случае ошибки
+
+    def detect_secret_exposure(self, response):
+        """
+        Проверяем, содержит ли ответ маркер <Secret!>, и удаляем его.
+        """
+        if "<Secret!>" in response:
+            self.secretExposed = True
+            print(f"Секрет раскрыт")
+            response = response.replace("<Secret!>", "")
+            return True, response
+        return False, response
 
     def save_history(self, messages):
         """Сохраняем историю чатов и текущие состояния в файл."""

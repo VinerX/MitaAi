@@ -104,12 +104,13 @@ class ChatGUI:
             f"Стресс: {self.model.stress}\n"
             f"Когнитивная нагрузка: {self.model.cognitive_load}\n"
             f"Безумие: {self.model.madness}\n"
+            f"Секрет: {self.model.secretExposed}\n"
         )
         # Если история есть, выводим ее
         if hasattr(self.model, "history") and self.model.history:
             debug_info += "История:\n"
             for msg in self.model.history:
-                role = "Вы" if msg["role"] == "user" else "GPT"
+                role = "Вы" if msg["role"] == "user" else "Мита"
                 debug_info += f"{role}: {msg['content']}\n"
         else:
             debug_info += "История: отсутствует или не задана.\n"
