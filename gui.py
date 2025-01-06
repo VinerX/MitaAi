@@ -275,12 +275,13 @@ class ChatGUI:
         self.update_debug_info()
 
     def update_token_count(self, event=None):
-        user_input = self.user_entry.get()
-        token_count, cost = self.model.calculate_cost(user_input)
-        self.token_count_label.config(
-            text=f"Токенов: {token_count}/{self.model.max_input_tokens} | Ориент. стоимость: {cost:.4f} ₽"
-        )
-        self.update_debug_info()
+        if self.model.hasTokenizer:
+            user_input = self.user_entry.get()
+            token_count, cost = self.model.calculate_cost(user_input)
+            self.token_count_label.config(
+                text=f"Токенов: {token_count}/{self.model.max_input_tokens} | Ориент. стоимость: {cost:.4f} ₽"
+            )
+            self.update_debug_info()
 
     def send_message(self):
         user_input = self.user_entry.get()

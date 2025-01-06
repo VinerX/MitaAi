@@ -3,6 +3,8 @@ import json
 import requests
 import tiktoken
 from openai import OpenAI
+import os
+import sys
 
 
 class ChatModel:
@@ -11,7 +13,13 @@ class ChatModel:
         self.api_url = ""
         self.client = OpenAI(api_key="",
                              base_url="https://api.proxyapi.ru/openai/v1")
-        self.tokenizer = tiktoken.encoding_for_model("gpt-4o-mini")
+        try:
+            self.tokenizer = tiktoken.encoding_for_model("gpt-4o-mini")
+            self.hasTokenizer = True
+        except:
+            print("Тиктокен не сработал(")
+            self.hasTokenizer = False
+
         self.max_input_tokens = 2048
         self.max_response_tokens = 2500
         self.cost_input_per_1000 = 0.0432
@@ -24,7 +32,7 @@ class ChatModel:
         self.madness = 15
         self.secretExposed = False
         self.secretExposedFirst = False
-        # Загрузка данных из JSON-файлов
+        # Загрузка данных из файлов
         self.main = self.load_text_from_file("Promts/Main/main.txt")
         self.mainPlaying = self.load_text_from_file("Promts/Main/mainPlaing.txt")
         self.PlayingFirst = False
@@ -140,9 +148,9 @@ class ChatModel:
             self.PlayingFirst = True
 
         #Если секрет раскрыт
-        elif self.mood < 10 or self.secretExposed and not self.secretExposedFirst:
+        elif self.mood <= 10 or self.secretExposed and not self.secretExposedFirst:
+            print("Перестала играть вообще")
             self.secretExposedFirst = True
-
             self.MitaMainBehaviour = {
                 "role": "system",
                 "content": (
@@ -160,7 +168,7 @@ class ChatModel:
             self.systemMessages.append(system_message)
 
         # Текущее настроение
-        timde_system_message = {
+        timed_system_message = {
             "role": "system",
             "content": (
                 f"Твои характеристики. "
@@ -175,7 +183,7 @@ class ChatModel:
                 f"Последняя фраза должна не предлагать новых идей, а логически завершать твою мысль."
             )
         }
-        messages.append(timde_system_message)
+        messages.append(timed_system_message)
 
         #Речь игрока
         messages.append({"role": "user", "content": user_input})
@@ -293,8 +301,6 @@ class ChatModel:
 
 def clamp(value, min_value, max_value):
     return max(min_value, min(value, max_value))
-
-
 def print_ip_and_country():
     try:
         # Обращаемся к API для получения информации о текущем IP
@@ -309,3 +315,35 @@ def print_ip_and_country():
         print(f"Ваша страна: {country}")
     except Exception as e:
         print(f"Ошибка при получении данных: {e}")
+def get_resource_path(filename):
+    """
+    Функция для получения пути к файлу, учитывая работу как в исходной среде, так и в собранном виде.
+    В случае, если приложение собрано в один файл, программа ищет папку Promts рядом с исполнимым файлом.
+    """
+    if getattr(sys, 'frozen', False):
+        # Если программа запущена как исполнимый файл (например, PyInstaller)
+        base_path = os.path.dirname(sys.executable)
+    else:
+        # Если программа запускается в обычной среде (например, в PyCharm)
+        base_path = os.path.dirname(__file__)
+
+    # Путь к папке Promts рядом с исполнимым файлом
+    promts_path = os.path.join(base_path, 'Promts')
+
+    # Если папка Promts существует, возвращаем путь к файлу в ней
+    if os.path.isdir(promts_path):
+        return os.path.join(promts_path, filename)
+
+    # Если папка Promts не найдена, генерируем ошибку или другое поведение
+    print(f"Ошибка: Папка 'Promts' не найдена рядом с исполнимым файлом.")
+    return None
+def load_text_from_file(filename):
+    """
+    Функция для чтения текста из файла.
+    """
+    try:
+        with open(get_resource_path(filename), 'r', encoding='utf-8') as file:
+            return file.read()
+    except Exception as e:
+        print(f"Ошибка при чтении файла {filename}: {e}")
+        return ""
