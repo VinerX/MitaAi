@@ -54,6 +54,8 @@ class ChatGUI:
         self.setup_debug_controls()
         self.setup_api_controls()
 
+        self.load_chat_history()  # Загрузить историю чата
+
     def setup_attitude_controls(self):
         attitude_frame = tk.Frame(self.root, bg="#2c2c2c")
         attitude_frame.pack(fill=tk.X, pady=5)
@@ -138,6 +140,16 @@ class ChatGUI:
             bg="#007acc", fg="#ffffff"
         )
         clear_button.pack(side=tk.LEFT, padx=5)
+
+    def load_chat_history(self):
+        """Загрузить историю из модели и отобразить в интерфейсе."""
+        for entry in self.model.chat_history:
+            role = entry["role"]
+            content = entry["content"]
+            if role == "user":
+                self.chat_window.insert(tk.END, f"Вы: {content}\n", "user")
+            elif role == "assistant":
+                self.chat_window.insert(tk.END, f"Мита: {content}\n\n", "gpt")
 
     def setup_debug_controls(self):
         debug_frame = tk.Frame(self.root, bg="#2c2c2c")

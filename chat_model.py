@@ -33,6 +33,7 @@ class ChatModel:
         self.cost_input_per_1000 = 0.0432
         self.cost_response_per_1000 = 0.1728
         self.history_file = "chat_history.json"
+        self.chat_history = self.load_history().get('messages', [])
         self.memory_limit = 30  # Ограничение сообщения
         self.attitude = 60
         self.boredom = 0
@@ -272,6 +273,7 @@ class ChatModel:
             print(f"Ошибка на фазе генерации: {e}")
             return f"Ошибка на фазе генерации: {e}"
 
+
     def process_response(self, user_input, response,messages):
 
         try:
@@ -350,15 +352,29 @@ class ChatModel:
 
             # Обработка команды в зависимости от условий
             if command == "Достать бензопилу":
+                self.add_temporary_system_message(messages,"Игрок был распилен, но скоро он вернется...")
                 os._exit(0)  # Принудительное завершение
 
             elif command == "Выключить игрока":
+                self.add_temporary_system_message(messages, "Игрок был выключен, но скоро он вернется...")
                 os._exit(0)  # Принудительное завершение
 
             # Можете добавить другие команды с аналогичной логикой
 
         return response
 
+    def add_temporary_system_message(self, messages, content):
+        """
+        Добавляет одноразовое системное сообщение в список сообщений.
+
+        :param messages: Список сообщений, в который добавляется системное сообщение.
+        :param content: Текст системного сообщения.
+        """
+        system_message = {
+            "role": "system",
+            "content": content
+        }
+        messages.append(system_message)
     def load_history(self):
         """Загружаем историю из файла, создаем пустую структуру, если файл пуст или не существует."""
         try:
