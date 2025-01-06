@@ -3,7 +3,9 @@
 from gui import ChatGUI
 import os
 
-# pyinstaller --add-data "Promts/*;Promts" --add-data "Promts/**/*;Promts" Main.py
+
+# + кинуть просты рядом!
+# pyinstaller  pyinstaller --onefile --add-data "Promts/*;Promts" --add-data "Promts/**/*;Promts" Main.py
 def main():
 
     gui = ChatGUI()

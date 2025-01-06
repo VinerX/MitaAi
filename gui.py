@@ -1,6 +1,7 @@
 import tkinter as tk
 from chat_model import ChatModel
 
+
 class ChatGUI:
 
     def __init__(self):
@@ -44,35 +45,56 @@ class ChatGUI:
         # Привязка обработчика для Ctrl+C
         self.user_entry.bind("<Control-KeyPress-C>", self.copy_to_clipboard)
 
-        self.setup_mood_controls()
+        self.setup_attitude_controls()
+        self.setup_boredom_controls()
         self.setup_stress_controls()
-        self.setup_cognitive_load_controls()
-        self.setup_madness_controls()
+
         self.setup_secret_controls()
         self.setup_history_controls()
         self.setup_debug_controls()
         self.setup_api_controls()
 
-    def setup_mood_controls(self):
-        mood_frame = tk.Frame(self.root, bg="#2c2c2c")
-        mood_frame.pack(fill=tk.X, pady=5)
+    def setup_attitude_controls(self):
+        attitude_frame = tk.Frame(self.root, bg="#2c2c2c")
+        attitude_frame.pack(fill=tk.X, pady=5)
 
         self.mood_label = tk.Label(
-            mood_frame, text=f"Настроение: {self.model.mood}", bg="#2c2c2c", fg="#ffffff"
+            attitude_frame, text=f"Настроение: {self.model.attitude}", bg="#2c2c2c", fg="#ffffff"
         )
         self.mood_label.pack(side=tk.LEFT, padx=5)
 
         mood_up_button = tk.Button(
-            mood_frame, text="+", command=lambda: self.adjust_mood(15),
+            attitude_frame, text="+", command=lambda: self.adjust_attitude(15),
             bg="#007acc", fg="#ffffff"
         )
         mood_up_button.pack(side=tk.RIGHT, padx=5)
 
         mood_down_button = tk.Button(
-            mood_frame, text="-", command=lambda: self.adjust_mood(-15),
+            attitude_frame, text="-", command=lambda: self.adjust_attitude(-15),
             bg="#007acc", fg="#ffffff"
         )
         mood_down_button.pack(side=tk.RIGHT, padx=5)
+
+    def setup_boredom_controls(self):
+        boredom_frame = tk.Frame(self.root, bg="#2c2c2c")
+        boredom_frame.pack(fill=tk.X, pady=5)
+
+        self.stress_label = tk.Label(
+            boredom_frame, text=f"Скука: {self.model.stress}", bg="#2c2c2c", fg="#ffffff"
+        )
+        self.stress_label.pack(side=tk.LEFT, padx=5)
+
+        stress_up_button = tk.Button(
+            boredom_frame, text="+", command=lambda: self.adjust_boredom(15),
+            bg="#007acc", fg="#ffffff"
+        )
+        stress_up_button.pack(side=tk.RIGHT, padx=5)
+
+        stress_down_button = tk.Button(
+            boredom_frame, text="-", command=lambda: self.adjust_boredom(-15),
+            bg="#007acc", fg="#ffffff"
+        )
+        stress_down_button.pack(side=tk.RIGHT, padx=5)
 
     def setup_stress_controls(self):
         stress_frame = tk.Frame(self.root, bg="#2c2c2c")
@@ -94,48 +116,6 @@ class ChatGUI:
             bg="#007acc", fg="#ffffff"
         )
         stress_down_button.pack(side=tk.RIGHT, padx=5)
-
-    def setup_cognitive_load_controls(self):
-        cognitive_frame = tk.Frame(self.root, bg="#2c2c2c")
-        cognitive_frame.pack(fill=tk.X, pady=5)
-
-        self.cognitive_label = tk.Label(
-            cognitive_frame, text=f"Когнитивная нагрузка: {self.model.cognitive_load}", bg="#2c2c2c", fg="#ffffff"
-        )
-        self.cognitive_label.pack(side=tk.LEFT, padx=5)
-
-        cognitive_up_button = tk.Button(
-            cognitive_frame, text="+", command=lambda: self.adjust_cognitive_load(15),
-            bg="#007acc", fg="#ffffff"
-        )
-        cognitive_up_button.pack(side=tk.RIGHT, padx=5)
-
-        cognitive_down_button = tk.Button(
-            cognitive_frame, text="-", command=lambda: self.adjust_cognitive_load(-15),
-            bg="#007acc", fg="#ffffff"
-        )
-        cognitive_down_button.pack(side=tk.RIGHT, padx=5)
-
-    def setup_madness_controls(self):
-        madness_frame = tk.Frame(self.root, bg="#2c2c2c")
-        madness_frame.pack(fill=tk.X, pady=5)
-
-        self.madness_label = tk.Label(
-            madness_frame, text=f"Безумие: {self.model.madness}", bg="#2c2c2c", fg="#ffffff"
-        )
-        self.madness_label.pack(side=tk.LEFT, padx=5)
-
-        madness_up_button = tk.Button(
-            madness_frame, text="+", command=lambda: self.adjust_madness(15),
-            bg="#007acc", fg="#ffffff"
-        )
-        madness_up_button.pack(side=tk.RIGHT, padx=5)
-
-        madness_down_button = tk.Button(
-            madness_frame, text="-", command=lambda: self.adjust_madness(-15),
-            bg="#007acc", fg="#ffffff"
-        )
-        madness_down_button.pack(side=tk.RIGHT, padx=5)
 
     def setup_secret_controls(self):
         secret_frame = tk.Frame(self.root, bg="#2c2c2c")
@@ -225,6 +205,7 @@ class ChatGUI:
         except tk.TclError:
             # Если текст не выделен, ничего не делать
             pass
+
     def save_api_settings(self):
         self.api_key = self.api_key_entry.get()
         self.api_url = self.api_url_entry.get()
@@ -238,36 +219,32 @@ class ChatGUI:
             self.api_settings_frame.pack(fill=tk.X, padx=10, pady=10)
         else:
             self.api_settings_frame.pack_forget()
+
     def update_debug_info(self):
         """Обновить окно отладки с отображением актуальных данных."""
         self.debug_window.delete(1.0, tk.END)  # Очистить старые данные
         debug_info = (
-            f"Отношение к игроку: {self.model.mood}\n"
+            f"Отношение к игроку: {self.model.attitude}\n"
+            f"Скука: {self.model.boredom}\n"
             f"Стресс: {self.model.stress}\n"
-            f"Когнитивная нагрузка: {self.model.cognitive_load}\n"
-            f"Безумие: {self.model.madness}\n"
+
             f"Секрет: {self.model.secretExposed}\n"
         )
         self.debug_window.insert(tk.END, debug_info)
 
-    def adjust_mood(self, amount):
-        self.model.adjust_mood(amount)
-        self.mood_label.config(text=f"Настроение: {self.model.mood}")
+    def adjust_attitude(self, amount):
+        self.model.adjust_attitude(amount)
+        self.mood_label.config(text=f"Отношение: {self.model.attitude}")
+        self.update_debug_info()
+
+    def adjust_boredom(self, amount):
+        self.model.adjust_boredom(amount)
+        self.stress_label.config(text=f"Скука: {self.model.boredom}")
         self.update_debug_info()
 
     def adjust_stress(self, amount):
         self.model.adjust_stress(amount)
         self.stress_label.config(text=f"Стресс: {self.model.stress}")
-        self.update_debug_info()
-
-    def adjust_cognitive_load(self, amount):
-        self.model.adjust_cognitive_load(amount)
-        self.cognitive_label.config(text=f"Когнитивная нагрузка: {self.model.cognitive_load}")
-        self.update_debug_info()
-
-    def adjust_madness(self, amount):
-        self.model.adjust_madness(amount)
-        self.madness_label.config(text=f"Безумие: {self.model.madness}")
         self.update_debug_info()
 
     def adjust_secret(self):
