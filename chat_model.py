@@ -50,7 +50,7 @@ class ChatModel:
 
         self.examplesLong = self.load_text_from_file("Promts/Context/examplesLong.txt")
         self.examplesLongCrazy = self.load_text_from_file("Promts/Context/examplesLongCrazy.txt")
-        self.examplesShort = self.load_text_from_file("Promts/Context/examplesShort.txt")
+
         self.world = self.load_text_from_file("Promts/Context/world.txt")
         self.mita_history = self.load_text_from_file("Promts/Context/mita_history.txt")
 
