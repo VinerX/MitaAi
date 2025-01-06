@@ -7,6 +7,8 @@ from openai import OpenAI
 
 class ChatModel:
     def __init__(self):
+        self.api_key = ""
+        self.api_url = ""
         self.client = OpenAI(api_key="",
                              base_url="https://api.proxyapi.ru/openai/v1")
         self.tokenizer = tiktoken.encoding_for_model("gpt-4o-mini")
@@ -87,6 +89,21 @@ class ChatModel:
         """Корректируем уровень безумия."""
         self.madness = clamp(self.madness + amount, 0, 100)
         print(f"Безумие изменилось на {amount}, новое значение: {self.madness}")
+
+    def set_api_key(self, api_key):
+        self.api_key = api_key
+        self.set_api_key_url()
+
+    def set_api_url(self, api_url):
+        self.api_url = api_url
+        self.set_api_key_url()
+
+    def set_api_key_url(self):
+        if self.api_url != "":
+            self.client = OpenAI(api_key=self.api_key,
+                                 base_url=self.api_url)
+        else:
+            self.client = OpenAI(api_key=self.api_key)
 
     def generate_response(self, user_input):
         messages = self.load_history()
@@ -172,7 +189,7 @@ class ChatModel:
         if self.MitaMainBehaviour not in messages:
             messages.insert(0, self.MitaMainBehaviour)
 
-        messages = self.systemMessages + messages #С учетом общего контекта
+        messages = self.systemMessages + messages  #С учетом общего контекта
         try:
             completion = self.client.chat.completions.create(
                 model="gpt-4o-mini",

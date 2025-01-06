@@ -7,6 +7,8 @@ class ChatGUI:
         self.model = ChatModel()
         self.root = tk.Tk()
         self.root.title("Чат с GPT")
+        self.api_key = ""
+        self.api_url = ""
         self.setup_ui()
 
     def setup_ui(self):
@@ -37,6 +39,9 @@ class ChatGUI:
         )
         self.token_count_label.pack(fill=tk.X, pady=5)
 
+        # Добавление обработчика для вставки текста
+        self.user_entry.bind("<Control-v>", self.paste_from_clipboard)
+
         self.setup_mood_controls()
         self.setup_stress_controls()
         self.setup_cognitive_load_controls()
@@ -44,10 +49,11 @@ class ChatGUI:
         self.setup_secret_controls()
         self.setup_history_controls()
         self.setup_debug_controls()
+        self.setup_api_controls()
 
     def setup_mood_controls(self):
         mood_frame = tk.Frame(self.root, bg="#2c2c2c")
-        mood_frame.pack(fill=tk.X, pady=10)
+        mood_frame.pack(fill=tk.X, pady=5)
 
         self.mood_label = tk.Label(
             mood_frame, text=f"Настроение: {self.model.mood}", bg="#2c2c2c", fg="#ffffff"
@@ -68,7 +74,7 @@ class ChatGUI:
 
     def setup_stress_controls(self):
         stress_frame = tk.Frame(self.root, bg="#2c2c2c")
-        stress_frame.pack(fill=tk.X, pady=10)
+        stress_frame.pack(fill=tk.X, pady=5)
 
         self.stress_label = tk.Label(
             stress_frame, text=f"Стресс: {self.model.stress}", bg="#2c2c2c", fg="#ffffff"
@@ -89,7 +95,7 @@ class ChatGUI:
 
     def setup_cognitive_load_controls(self):
         cognitive_frame = tk.Frame(self.root, bg="#2c2c2c")
-        cognitive_frame.pack(fill=tk.X, pady=10)
+        cognitive_frame.pack(fill=tk.X, pady=5)
 
         self.cognitive_label = tk.Label(
             cognitive_frame, text=f"Когнитивная нагрузка: {self.model.cognitive_load}", bg="#2c2c2c", fg="#ffffff"
@@ -110,7 +116,7 @@ class ChatGUI:
 
     def setup_madness_controls(self):
         madness_frame = tk.Frame(self.root, bg="#2c2c2c")
-        madness_frame.pack(fill=tk.X, pady=10)
+        madness_frame.pack(fill=tk.X, pady=5)
 
         self.madness_label = tk.Label(
             madness_frame, text=f"Безумие: {self.model.madness}", bg="#2c2c2c", fg="#ffffff"
@@ -131,7 +137,7 @@ class ChatGUI:
 
     def setup_secret_controls(self):
         secret_frame = tk.Frame(self.root, bg="#2c2c2c")
-        secret_frame.pack(fill=tk.X, pady=10)
+        secret_frame.pack(fill=tk.X, pady=5)
 
         self.secret_var = tk.BooleanVar(value=self.model.secretExposed)
 
@@ -143,7 +149,7 @@ class ChatGUI:
 
     def setup_history_controls(self):
         history_frame = tk.Frame(self.root, bg="#2c2c2c")
-        history_frame.pack(fill=tk.X, pady=10)
+        history_frame.pack(fill=tk.X, pady=5)
 
         clear_button = tk.Button(
             history_frame, text="Очистить историю", command=self.clear_history,
@@ -156,13 +162,68 @@ class ChatGUI:
         debug_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
         self.debug_window = tk.Text(
-            debug_frame, height=10, width=50, bg="#1e1e1e", fg="#ffffff",
+            debug_frame, height=5, width=50, bg="#1e1e1e", fg="#ffffff",
             state=tk.NORMAL, wrap=tk.WORD, insertbackground="white"
         )
         self.debug_window.pack(fill=tk.BOTH, expand=True)
 
         self.update_debug_info()  # Отобразить изначальное состояние переменных
 
+    def setup_api_controls(self):
+        api_frame = tk.Frame(self.root, bg="#2c2c2c")
+        api_frame.pack(fill=tk.X, pady=10)
+
+        self.show_api_var = tk.BooleanVar(value=False)
+
+        api_toggle = tk.Checkbutton(
+            api_frame, text="Показать настройки API", variable=self.show_api_var,
+            command=self.toggle_api_settings, bg="#2c2c2c", fg="#ffffff"
+        )
+        api_toggle.pack(side=tk.LEFT, padx=5)
+
+        self.api_settings_frame = tk.Frame(self.root, bg="#2c2c2c")
+
+        tk.Label(
+            self.api_settings_frame, text="API-ключ:", bg="#2c2c2c", fg="#ffffff"
+        ).grid(row=0, column=0, padx=5, pady=5, sticky=tk.W)
+
+        self.api_key_entry = tk.Entry(self.api_settings_frame, width=50, bg="#1e1e1e", fg="#ffffff",
+                                      insertbackground="white")
+        self.api_key_entry.grid(row=0, column=1, padx=5, pady=5, sticky=tk.W)
+
+        tk.Label(
+            self.api_settings_frame, text="Ссылка:", bg="#2c2c2c", fg="#ffffff"
+        ).grid(row=1, column=0, padx=5, pady=5, sticky=tk.W)
+
+        self.api_url_entry = tk.Entry(self.api_settings_frame, width=50, bg="#1e1e1e", fg="#ffffff",
+                                      insertbackground="white")
+        self.api_url_entry.grid(row=1, column=1, padx=5, pady=5, sticky=tk.W)
+
+        save_button = tk.Button(
+            self.api_settings_frame, text="Сохранить", command=self.save_api_settings,
+            bg="#007acc", fg="#ffffff"
+        )
+        save_button.grid(row=2, column=0, columnspan=2, pady=10)
+
+    def paste_from_clipboard(self, event=None):
+        try:
+            clipboard_content = self.root.clipboard_get()
+            self.user_entry.insert(tk.INSERT, clipboard_content)
+        except tk.TclError:
+            pass  # Если буфер обмена пуст, ничего не делаем
+    def save_api_settings(self):
+        self.api_key = self.api_key_entry.get()
+        self.api_url = self.api_url_entry.get()
+        self.model.set_api_key(self.api_key)
+        self.model.set_api_url(self.api_url)
+        print(f"API-ключ сохранён: {self.api_key}")
+        print(f"Ссылка API сохранена: {self.api_url}")
+
+    def toggle_api_settings(self):
+        if self.show_api_var.get():
+            self.api_settings_frame.pack(fill=tk.X, padx=10, pady=10)
+        else:
+            self.api_settings_frame.pack_forget()
     def update_debug_info(self):
         """Обновить окно отладки с отображением актуальных данных."""
         self.debug_window.delete(1.0, tk.END)  # Очистить старые данные
