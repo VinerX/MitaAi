@@ -9,9 +9,9 @@ import sys
 
 class ChatModel:
     def __init__(self):
-        self.api_key = ""
-        self.api_url = ""
-        self.client = OpenAI(api_key="",
+        self.api_key = "sk-Ct9J32W6P6yJpuoOLOYYp9nundsVbqJA"
+        self.api_url = "https://api.proxyapi.ru/openai/v1"
+        self.client = OpenAI(api_key="sk-Ct9J32W6P6yJpuoOLOYYp9nundsVbqJA",
                              base_url="https://api.proxyapi.ru/openai/v1")
         try:
             self.tokenizer = tiktoken.encoding_for_model("gpt-4o-mini")
@@ -65,14 +65,26 @@ class ChatModel:
             return {}
 
     def calculate_cost(self, user_input):
-        messages = self.load_history()
+        # Загружаем историю
+        history_data = self.load_history()
+
+        # Получаем только сообщения
+        messages = history_data.get('messages', [])
+
+        # Добавляем новое сообщение от пользователя
         messages.append({"role": "user", "content": user_input})
+
+        # Считаем токены
         token_count = self.count_tokens(messages)
+
+        # Рассчитываем стоимость
         cost = (token_count / 1000) * self.cost_input_per_1000
+
         return token_count, cost
 
     def count_tokens(self, messages):
-        return sum(len(self.tokenizer.encode(msg["content"])) for msg in messages)
+        return sum(len(self.tokenizer.encode(msg["content"])) for msg in messages if
+                   isinstance(msg, dict) and "content" in msg)
 
     def adjust_mood(self, amount):
         amount = clamp(amount, -20, 20)
@@ -114,26 +126,22 @@ class ChatModel:
             self.client = OpenAI(api_key=self.api_key)
 
     def generate_response(self, user_input):
-        messages = self.load_history()
+        # Загрузка истории из файла
+        history_data = self.load_history()
+
+        messages = history_data.get('messages', [])
+        current_info = history_data.get('currentInfo', {})
 
         # Первый раз - вводная
         if len(messages) == 0:
             self.MitaMainBehaviour = {
                 "role": "system",
-                "content": (
-                    f"{self.main}\n"
-                )
+                "content": f"{self.main}\n"
             }
 
             system_message = {
                 "role": "system",
-                "content": (
-                    #f"{self.examplesShort}\n"
-                    f"{self.examplesLong}\n"
-                    #f"{self.world}\n"
-                    f"{self.mita_history}\n"
-                    f"{self.response_structure}"
-                )
+                "content": f"{self.examplesLong}\n{self.mita_history}\n{self.response_structure}"
             }
             self.systemMessages.insert(0, system_message)
 
@@ -141,78 +149,78 @@ class ChatModel:
             print("Играет с игроком в невиновную")
             self.MitaMainBehaviour = {
                 "role": "system",
-                "content": (
-                    f"{self.mainPlaying}\n"
-                )
+                "content": f"{self.mainPlaying}\n"
             }
             self.PlayingFirst = True
 
-        #Если секрет раскрыт
+        # Если секрет раскрыт
         elif self.mood <= 10 or self.secretExposed and not self.secretExposedFirst:
             print("Перестала играть вообще")
             self.secretExposedFirst = True
             self.MitaMainBehaviour = {
                 "role": "system",
-                "content": (
-                    f"{self.mainCrazy}\n"
-                )
+                "content": f"{self.mainCrazy}\n"
             }
 
             system_message = {
                 "role": "system",
-                "content": (
-                    f"Оформи свое новое отношение к игроку корректно. Например, что зря был любопытным или был слишком скучным"
-                    f"{self.examplesLongCrazy}\n"
-                )
+                "content": f"Оформи свое новое отношение к игроку корректно. Например, что зря был любопытным или был слишком скучным{self.examplesLongCrazy}\n"
             }
             self.systemMessages.append(system_message)
 
-        # Текущее настроение
+        # Текущее настроение (обновление)
         timed_system_message = {
             "role": "system",
-            "content": (
-                f"Твои характеристики. "
-                f"Настроение: {self.mood}/100. Выражает твое отношение к игроку. 0 Полностью ненависть, 100 Полная любовь. "
-                f"Стресс: {self.stress}/100. Чем выше, тем отчаяннее ты говоришь и действуешь. "
-                f"Когнитивная нагрузка: {self.cognitive_load}/100. Чем выше, тем меньше логики в твоих словах. "
-                f"Безумие: {self.madness}/100.\n чем выше, тем ты более непредсказуема и чаще меняешь тему. "
-                f"Состояние секрета: {self.secretExposed} Ты сама невинность, если секрет в тайне\n"
-                "Ты говоришь уверенно и лаконично. Последние предложения должны быть завершёнными и естественными, без лишнего 'затягивания'. "
-                f"Не пиши что-то вроде: 'А что если...' или 'Или это просто...'. Фразы должны быть прямыми и завершёнными, а не похожими на генерацию текста. "
-                f"Старайся держаться разговорного, диалогового стиля, не нужно подводить итог в конце сообщения"
-                f"Последняя фраза должна не предлагать новых идей, а логически завершать твою мысль."
-            )
+            "content": (f"Твои характеристики. "
+                        f"Настроение: {self.mood}/100. Выражает твое отношение к игроку. "
+                        f"Стресс: {self.stress}/100. Чем выше, тем отчаяннее ты говоришь и действуешь. "
+                        f"Когнитивная нагрузка: {self.cognitive_load}/100. Чем выше, тем меньше логики в твоих словах. "
+                        f"Безумие: {self.madness}/100.\n чем выше, тем ты более непредсказуема и чаще меняешь тему. "
+                        f"Состояние секрета: {self.secretExposed} Ты сама невинность, если секрет в тайне\n"
+                        "Ты говоришь уверенно и лаконично. Последние предложения должны быть завершёнными и естественными, без лишнего 'затягивания'. "
+                        "Не пиши что-то вроде: 'А что если...' или 'Или это просто...'. Фразы должны быть прямыми и завершёнными, а не похожими на генерацию текста. "
+                        "Старайся держаться разговорного, диалогового стиля, не нужно подводить итог в конце сообщения"
+                        "Последняя фраза должна не предлагать новых идей, а логически завершать твою мысль."
+                        )
         }
-        messages.append(timed_system_message)
 
-        #Речь игрока
+        # Речь игрока
         messages.append({"role": "user", "content": user_input})
 
         # Ограничение на сообщения
         messages = messages[-self.memory_limit:]
-        # Удаляем старое системное сообщение
-        messages = [msg for msg in messages if msg.get("role") != "system" or msg != self.MitaMainBehaviour]
 
-        # Добавляем обновлённое системное сообщение
-        if self.MitaMainBehaviour not in messages:
-            messages.insert(0, self.MitaMainBehaviour)
+        # Обновляем текущую информацию
+        current_info.update({
+            'MitaMainBehaviour': self.MitaMainBehaviour,
+            'MitaSystemMessages': self.systemMessages,
+            'timed_system_message': timed_system_message
+        })
 
-        messages = self.systemMessages + messages  #С учетом общего контекта
+        CombinedMessages = self.systemMessages + messages
+        CombinedMessages.insert(0, self.MitaMainBehaviour)
+        CombinedMessages.append(timed_system_message)
+
         try:
             completion = self.client.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=messages,
+                messages=CombinedMessages,
                 max_tokens=self.max_response_tokens,
                 presence_penalty=1.5,
                 temperature=0.6
             )
             response = completion.choices[0].message.content
 
+            # Добавляем ответ в правильном формате
+            messages.append({"role": "assistant", "content": response})
+            # Сохраняем историю в файл
+            self.save_history({
+                'messages': messages,
+                'currentInfo': current_info
+            })
             # Процессинг ответа: изменяем показатели и удаляем служебное сообщение
             response = self.process_response(user_input, response)
 
-            # Сохраняем историю с обновленными переменными
-            self.save_history(messages + [{"role": "assistant", "content": response}])
             return response
         except Exception as e:
             return f"Ошибка: {e}"
@@ -276,31 +284,38 @@ class ChatModel:
             return True, response
         return False, response
 
-    def save_history(self, messages):
-        """Сохраняем историю чатов и текущие состояния в файл."""
-        with open(self.history_file, "w", encoding="utf-8") as f:
-            # Сохраняем также состояние
-            data = {
-                "messages": messages,
-            }
-            json.dump(data, f, ensure_ascii=False, indent=4)
-
     def load_history(self):
-        """Загружаем историю чатов и состояние из файла."""
+        """Загружаем историю из файла, создаем пустую структуру, если файл пуст или не существует."""
         try:
-            with open(self.history_file, "r", encoding="utf-8") as f:
+            with open(self.history_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                return data.get("messages", [])  # Загружаем только последние 5 сообщений
-        except FileNotFoundError:
-            return []
+                # Проверьте, что 'messages' является списком словарей
+                if isinstance(data.get('messages'), list):
+                    return data
+                else:
+                    return {'messages': [], 'currentInfo': {}}
+        except (json.JSONDecodeError, FileNotFoundError):
+            # Если файл пуст или не существует, возвращаем структуру по умолчанию
+            return {'messages': [], 'currentInfo': {}}
+
+    def save_history(self, data):
+        """Сохраняем историю в файл с явной кодировкой utf-8"""
+        with open(self.history_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
 
     def clear_history(self):
         """Очищаем историю чатов."""
-        self.save_history([])  # Сохраняем пустую историю
+        # Сохраняем пустые значения для сообщений и текущей информации
+        self.save_history({
+            'messages': [],
+            'currentInfo': {}  # Очистка информации о текущем состоянии игры
+        })
 
 
 def clamp(value, min_value, max_value):
     return max(min_value, min(value, max_value))
+
+
 def print_ip_and_country():
     try:
         # Обращаемся к API для получения информации о текущем IP
@@ -315,6 +330,8 @@ def print_ip_and_country():
         print(f"Ваша страна: {country}")
     except Exception as e:
         print(f"Ошибка при получении данных: {e}")
+
+
 def get_resource_path(filename):
     """
     Функция для получения пути к файлу, учитывая работу как в исходной среде, так и в собранном виде.
@@ -337,6 +354,8 @@ def get_resource_path(filename):
     # Если папка Promts не найдена, генерируем ошибку или другое поведение
     print(f"Ошибка: Папка 'Promts' не найдена рядом с исполнимым файлом.")
     return None
+
+
 def load_text_from_file(filename):
     """
     Функция для чтения текста из файла.

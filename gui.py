@@ -7,8 +7,8 @@ class ChatGUI:
         self.model = ChatModel()
         self.root = tk.Tk()
         self.root.title("Чат с GPT")
-        self.api_key = ""
-        self.api_url = ""
+        self.api_key = "sk-Ct9J32W6P6yJpuoOLOYYp9nundsVbqJA"
+        self.api_url = "https://api.proxyapi.ru/openai/v1"
         self.setup_ui()
 
     def setup_ui(self):
@@ -42,7 +42,7 @@ class ChatGUI:
         # Привязка для вставки с использованием Control-Insert
         self.user_entry.bind("<Control-Insert>", self.paste_from_clipboard)
         # Привязка обработчика для Ctrl+C
-        self.user_entry.bind("<Control-c>", self.copy_to_clipboard)
+        self.user_entry.bind("<Control-KeyPress-C>", self.copy_to_clipboard)
 
         self.setup_mood_controls()
         self.setup_stress_controls()
