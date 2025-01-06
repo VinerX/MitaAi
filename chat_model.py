@@ -53,10 +53,12 @@ class ChatModel:
         self.examplesShort = self.load_text_from_file("Promts/Context/examplesShort.txt")
         self.world = self.load_text_from_file("Promts/Context/world.txt")
         self.mita_history = self.load_text_from_file("Promts/Context/mita_history.txt")
+
+        self.variableEffects = self.load_text_from_file("Promts/Structural/VariablesEffects.txt")
         self.response_structure = self.load_text_from_file("Promts/Structural/response_structure.txt")
 
         self.events = None
-        self.events.SecretExposed = self.load_text_from_file("Promts/Events/SecretExposed.txt.txt")
+        self.events.SecretExposed = self.load_text_from_file("Promts/Events/SecretExposed.txt")
 
         self.MitaMainBehaviour = []
         self.MitaExamples = []
@@ -194,11 +196,11 @@ class ChatModel:
         # Текущее настроение (обновление)
         timed_system_message = {
             "role": "system",
-            "content": (f"Твои характеристики. "
-                        f"Отношение: {self.attitude}/100. Чем больше, тем лучше ты относишься к игроку. Чем ниже, тем больше в тебя проявляется раздражительность"
-                        f"Стресс: {self.stress}/100. Чем выше, более отчаянно ты говоришь и поступаешь"
-                        f"Скука: {self.boredom}/100. Чем выше, тем меньше ты реагируешь на игрока. Чем выше, тем короче и суше фразы."
-                        f"Состояние секрета: {self.secretExposed} Ты сама невинность, если секрет в тайне\n"
+            "content": (f"Твои характеристики. {self.variableEffects}"
+                        f"Отношение: {self.attitude}/100."
+                        f"Стресс: {self.stress}/100."
+                        f"Скука: {self.boredom}/100."
+                        f"Состояние секрета: {self.secretExposed}"
                         f"{self.common}"
                         )
         }
