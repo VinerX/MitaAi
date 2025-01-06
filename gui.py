@@ -39,8 +39,10 @@ class ChatGUI:
         )
         self.token_count_label.pack(fill=tk.X, pady=5)
 
-        # Добавление обработчика для вставки текста
-        self.user_entry.bind("<Control-v>", self.paste_from_clipboard)
+        # Привязка для вставки с использованием Control-Insert
+        self.user_entry.bind("<Control-Insert>", self.paste_from_clipboard)
+        # Привязка обработчика для Ctrl+C
+        self.user_entry.bind("<Control-c>", self.copy_to_clipboard)
 
         self.setup_mood_controls()
         self.setup_stress_controls()
@@ -211,6 +213,18 @@ class ChatGUI:
             self.user_entry.insert(tk.INSERT, clipboard_content)
         except tk.TclError:
             pass  # Если буфер обмена пуст, ничего не делаем
+
+    def copy_to_clipboard(self, event=None):
+        try:
+            # Получение выделенного текста из поля ввода
+            selected_text = self.user_entry.selection_get()
+            # Копирование текста в буфер обмена
+            self.root.clipboard_clear()
+            self.root.clipboard_append(selected_text)
+            self.root.update()  # Обновление буфера обмена
+        except tk.TclError:
+            # Если текст не выделен, ничего не делать
+            pass
     def save_api_settings(self):
         self.api_key = self.api_key_entry.get()
         self.api_url = self.api_url_entry.get()
