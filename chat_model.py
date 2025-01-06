@@ -141,7 +141,9 @@ class ChatModel:
 
             system_message = {
                 "role": "system",
-                "content": f"{self.examplesLong}\n{self.mita_history}\n{self.response_structure}"
+                "content": f"{self.examplesLong}\n"
+                           #f"{self.mita_history}\n"
+                           f"{self.response_structure}"
             }
             self.systemMessages.insert(0, system_message)
 
@@ -154,17 +156,23 @@ class ChatModel:
             self.PlayingFirst = True
 
         # Если секрет раскрыт
-        elif self.mood <= 10 or self.secretExposed and not self.secretExposedFirst:
+        elif (self.mood <= 10 or self.secretExposed) and not self.secretExposedFirst:
             print("Перестала играть вообще")
             self.secretExposedFirst = True
             self.MitaMainBehaviour = {
                 "role": "system",
                 "content": f"{self.mainCrazy}\n"
+                           f"{self.response_structure}"
             }
 
             system_message = {
                 "role": "system",
-                "content": f"Оформи свое новое отношение к игроку корректно. Например, что зря был любопытным или был слишком скучным{self.examplesLongCrazy}\n"
+                "content": f"Оформи свое новое отношение к игроку корректно. Например, что зря был любопытным или был слишком скучным."
+            }
+            messages.append(system_message)
+            system_message = {
+                "role": "system",
+                "content": f"{self.examplesLongCrazy}\n"
             }
             self.systemMessages.append(system_message)
 
@@ -197,14 +205,14 @@ class ChatModel:
             'timed_system_message': timed_system_message
         })
 
-        CombinedMessages = self.systemMessages + messages
-        CombinedMessages.insert(0, self.MitaMainBehaviour)
-        CombinedMessages.append(timed_system_message)
-
+        combined_messages = self.systemMessages
+        combined_messages.append(self.MitaMainBehaviour)
+        combined_messages.append(timed_system_message)
+        combined_messages = combined_messages + messages
         try:
             completion = self.client.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=CombinedMessages,
+                messages=combined_messages,
                 max_tokens=self.max_response_tokens,
                 presence_penalty=1.5,
                 temperature=0.6
@@ -223,6 +231,7 @@ class ChatModel:
 
             return response
         except Exception as e:
+            print("Ошибка")
             return f"Ошибка: {e}"
 
     def process_response(self, user_input, response):
