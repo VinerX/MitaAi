@@ -7,7 +7,7 @@ class ChatGUI:
     def __init__(self):
         self.model = ChatModel()
         self.root = tk.Tk()
-        self.root.title("Чат с GPT")
+        self.root.title("Чат с MitaAI")
         self.api_key = "sk-Ct9J32W6P6yJpuoOLOYYp9nundsVbqJA"
         self.api_url = "https://api.proxyapi.ru/openai/v1"
         self.setup_ui()
@@ -79,10 +79,10 @@ class ChatGUI:
         boredom_frame = tk.Frame(self.root, bg="#2c2c2c")
         boredom_frame.pack(fill=tk.X, pady=5)
 
-        self.stress_label = tk.Label(
-            boredom_frame, text=f"Скука: {self.model.stress}", bg="#2c2c2c", fg="#ffffff"
+        self.boredom_label = tk.Label(
+            boredom_frame, text=f"Скука: {self.model.boredom}", bg="#2c2c2c", fg="#ffffff"
         )
-        self.stress_label.pack(side=tk.LEFT, padx=5)
+        self.boredom_label.pack(side=tk.LEFT, padx=5)
 
         stress_up_button = tk.Button(
             boredom_frame, text="+", command=lambda: self.adjust_boredom(15),
@@ -239,7 +239,7 @@ class ChatGUI:
 
     def adjust_boredom(self, amount):
         self.model.adjust_boredom(amount)
-        self.stress_label.config(text=f"Скука: {self.model.boredom}")
+        self.boredom_label.config(text=f"Скука: {self.model.boredom}")
         self.update_debug_info()
 
     def adjust_stress(self, amount):
