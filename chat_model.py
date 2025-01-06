@@ -12,6 +12,7 @@ from g4f.client import Client
 
 class ChatModel:
     def __init__(self):
+
         self.api_key = "sk-Ct9J32W6P6yJpuoOLOYYp9nundsVbqJA"
         self.api_url = "https://api.proxyapi.ru/openai/v1"
 
@@ -40,6 +41,7 @@ class ChatModel:
         self.secretExposed = False
         self.secretExposedFirst = False
         # Загрузка данных из файлов
+        self.common = self.load_text_from_file("Promts/Main/common.txt")
         self.main = self.load_text_from_file("Promts/Main/main.txt")
         self.player = self.load_text_from_file("Promts/Main/player.txt")
         self.mainPlaying = self.load_text_from_file("Promts/Main/mainPlaing.txt")
@@ -52,6 +54,9 @@ class ChatModel:
         self.world = self.load_text_from_file("Promts/Context/world.txt")
         self.mita_history = self.load_text_from_file("Promts/Context/mita_history.txt")
         self.response_structure = self.load_text_from_file("Promts/Structural/response_structure.txt")
+
+        self.events = None
+        self.events.SecretExposed = self.load_text_from_file("Promts/Events/SecretExposed.txt.txt")
 
         self.MitaMainBehaviour = []
         self.MitaExamples = []
@@ -176,8 +181,7 @@ class ChatModel:
             }
             system_message = {
                 "role": "system",
-                "content": f"Небрежно оформи свое новое отношение к игроку, что раз уж он захотел узнать узнать правду, пусть видит последствия"
-                           f"Это должно быть органично, во время этой фразы ты на глазах перестаешь быть милой девушкой, которую все это время играла"
+                "content": f"{self.events.SecretExposed}"
 
             }
             messages.append(system_message)
@@ -195,14 +199,7 @@ class ChatModel:
                         f"Стресс: {self.stress}/100. Чем выше, более отчаянно ты говоришь и поступаешь"
                         f"Скука: {self.boredom}/100. Чем выше, тем меньше ты реагируешь на игрока. Чем выше, тем короче и суше фразы."
                         f"Состояние секрета: {self.secretExposed} Ты сама невинность, если секрет в тайне\n"
-                        f"Ты говоришь уверенно и лаконично. Последние предложения должны быть завершёнными и естественными, без лишнего 'затягивания'. "
-                        f"Не пиши что-то вроде: 'А что если...' или 'Или это просто...'. Фразы должны быть прямыми и завершёнными, а не похожими на генерацию текста. "
-                        f"Старайся держаться разговорного, диалогового стиля, не нужно подводить итог в конце сообщения или что-то уточнять, если это не органично"
-                        f"Последняя фраза должна не предлагать новых идей, а логически завершать твою мысль."
-                        f"И помни, ведешь себя по живому, на безосновательный бред игрока надо реагировать как человек"
-
-
-
+                        f"{self.common}"
                         )
         }
 
