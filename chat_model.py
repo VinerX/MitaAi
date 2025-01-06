@@ -57,8 +57,7 @@ class ChatModel:
         self.variableEffects = self.load_text_from_file("Promts/Structural/VariablesEffects.txt")
         self.response_structure = self.load_text_from_file("Promts/Structural/response_structure.txt")
 
-        self.events = None
-        self.events.SecretExposed = self.load_text_from_file("Promts/Events/SecretExposed.txt")
+        self.SecretExposed = self.load_text_from_file("Promts/Events/SecretExposed.txt")
 
         self.MitaMainBehaviour = []
         self.MitaExamples = []
@@ -139,7 +138,7 @@ class ChatModel:
         # Загрузка истории из файла
         history_data = self.load_history()
 
-        messages = history_data.get('messages', list)
+        messages = history_data.get('messages', [])
         current_info = history_data.get('currentInfo', {})
 
         print(
@@ -183,7 +182,7 @@ class ChatModel:
             }
             system_message = {
                 "role": "system",
-                "content": f"{self.events.SecretExposed}"
+                "content": f"{self.SecretExposed}"
 
             }
             messages.append(system_message)
@@ -222,11 +221,31 @@ class ChatModel:
         })
         current_info['MitaSystemMessages'] = self.systemMessages
 
-        combined_messages = self.systemMessages[:]  # история + buhjrf + формат ответа
-        combined_messages.append(self.MitaExamples)  # Примеры фраз Миты
-        combined_messages.append(self.MitaMainBehaviour)  # Линия поведения Миты
-        combined_messages.append(timed_system_message)  # Настроение
-        combined_messages = combined_messages + messages  # Ласт (30) сообщения
+        combined_messages = []
+
+        # Добавляем systemMessages, если они не пустые
+        if self.systemMessages:
+            combined_messages.extend(self.systemMessages)
+
+        # Добавляем MitaExamples, если это словарь
+        if isinstance(self.MitaExamples, dict):
+            combined_messages.append(self.MitaExamples)
+
+        # Добавляем MitaMainBehaviour, если это словарь
+        if isinstance(self.MitaMainBehaviour, dict):
+            combined_messages.append(self.MitaMainBehaviour)
+
+        # Добавляем timed_system_message, если это словарь
+        if isinstance(timed_system_message, dict):
+            combined_messages.append(timed_system_message)
+
+        # Добавляем messages, если они не пустые
+        if messages:
+            combined_messages.extend(messages)
+
+        for idx, msg in enumerate(combined_messages):
+            if not isinstance(msg, dict) or "role" not in msg or "content" not in msg:
+                print(f"Ошибка в формате сообщения {idx}: {msg}")
 
         try:
             completion = self.client.chat.completions.create(
@@ -246,14 +265,14 @@ class ChatModel:
                 'currentInfo': current_info
             })
             # Процессинг ответа: изменяем показатели и удаляем служебное сообщение
-            response = self.process_response(user_input, response)
+            response = self.process_response(user_input, response,messages)
 
             return response
         except Exception as e:
             print(f"Ошибка на фазе генерации: {e}")
             return f"Ошибка на фазе генерации: {e}"
 
-    def process_response(self, user_input, response):
+    def process_response(self, user_input, response,messages):
 
         try:
             # Обрабатываем изменение состояния Секрета
@@ -261,6 +280,9 @@ class ChatModel:
 
             # Обрабатывает ответ, изменяет показатели на основе скрытой строки формата <p>x,x,x,x<p>.
             response = self.process_behavior_changes(response)
+
+            #Выполняет команды
+            response = self.process_commands(response,messages)
 
             # Возвращаем обработанный ответ для дальнейшей работы
             return response.strip()
@@ -309,6 +331,32 @@ class ChatModel:
             if self.HideAiData:
                 response = response.replace("<Secret!>", "")
             return response
+        return response
+
+    def process_commands(self, response,messages):
+        """
+        Обрабатывает команды типа <c>...</c> в ответе.
+        Команды могут быть: "Достать бензопилу", "Выключить игрока" и другие.
+        """
+
+        start_tag = "<c>"
+        end_tag = "</c>"
+
+        while start_tag in response and end_tag in response:
+            # Извлекаем команду
+            start_index = response.index(start_tag) + len(start_tag)
+            end_index = response.index(end_tag, start_index)
+            command = response[start_index:end_index]
+
+            # Обработка команды в зависимости от условий
+            if command == "Достать бензопилу":
+                os._exit(0)  # Принудительное завершение
+
+            elif command == "Выключить игрока":
+                os._exit(0)  # Принудительное завершение
+
+            # Можете добавить другие команды с аналогичной логикой
+
         return response
 
     def load_history(self):
