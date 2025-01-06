@@ -142,6 +142,7 @@ class ChatGUI:
         clear_button.pack(side=tk.LEFT, padx=5)
 
     def load_chat_history(self):
+        self.model.load_history()
         """Загрузить историю из модели и отобразить в интерфейсе."""
         for entry in self.model.chat_history:
             role = entry["role"]

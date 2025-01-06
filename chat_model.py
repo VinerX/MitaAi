@@ -10,6 +10,20 @@ import datetime
 from g4f.client import Client
 
 
+def add_temporary_system_message(messages, content):
+    """
+    Добавляет одноразовое системное сообщение в список сообщений.
+
+    :param messages: Список сообщений, в который добавляется системное сообщение.
+    :param content: Текст системного сообщения.
+    """
+    system_message = {
+        "role": "system",
+        "content": content
+    }
+    messages.append(system_message)
+
+
 class ChatModel:
     def __init__(self):
 
@@ -261,12 +275,15 @@ class ChatModel:
             # Добавляем ответ в правильном формате
             messages.append({"role": "assistant", "content": response})
             # Сохраняем историю в файл
+
+            # Процессинг ответа: изменяем показатели и удаляем служебное сообщение
+            response = self.process_response(user_input, response, messages)
+
             self.save_history({
                 'messages': messages,
                 'currentInfo': current_info
             })
-            # Процессинг ответа: изменяем показатели и удаляем служебное сообщение
-            response = self.process_response(user_input, response,messages)
+
 
             return response
         except Exception as e:
@@ -352,42 +369,37 @@ class ChatModel:
 
             # Обработка команды в зависимости от условий
             if command == "Достать бензопилу":
-                self.add_temporary_system_message(messages,"Игрок был распилен, но скоро он вернется...")
+                add_temporary_system_message(messages,"Игрок был распилен, но скоро он вернется...")
                 os._exit(0)  # Принудительное завершение
 
             elif command == "Выключить игрока":
-                self.add_temporary_system_message(messages, "Игрок был выключен, но скоро он вернется...")
+                add_temporary_system_message(messages, "Игрок был выключен, но скоро он вернется...")
                 os._exit(0)  # Принудительное завершение
 
             # Можете добавить другие команды с аналогичной логикой
 
         return response
 
-    def add_temporary_system_message(self, messages, content):
-        """
-        Добавляет одноразовое системное сообщение в список сообщений.
-
-        :param messages: Список сообщений, в который добавляется системное сообщение.
-        :param content: Текст системного сообщения.
-        """
-        system_message = {
-            "role": "system",
-            "content": content
-        }
-        messages.append(system_message)
     def load_history(self):
         """Загружаем историю из файла, создаем пустую структуру, если файл пуст или не существует."""
         try:
             with open(self.history_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-                # Проверяем, что 'messages' и 'currentInfo' присутствуют, и 'messages' является списком
-                if isinstance(data.get('messages'), list) and isinstance(data.get('currentInfo'), dict):
+                # Проверяем наличие ключей и их типов
+                if (isinstance(data.get('messages'), list) and
+                        isinstance(data.get('currentInfo'), dict) and
+                        isinstance(data.get('MitaSystemMessages'), list)):
+                    # Загружаем переменные, если они есть в истории
+                    self.attitude = data.get('attitude', 60)
+                    self.boredom = data.get('boredom', 0)
+                    self.stress = data.get('stress', 0)
+                    self.secretExposed = data.get('secretExposed', False)
                     return data
                 else:
-                    return {'messages': [], 'currentInfo': {}, 'MitaSystemMessages': []}
+                    return self._default_history()
         except (json.JSONDecodeError, FileNotFoundError):
             # Если файл пуст или не существует, возвращаем структуру по умолчанию
-            return {'messages': [], 'currentInfo': {}, 'MitaSystemMessages': []}
+            return self._default_history()
 
     def save_history(self, data):
         """Сохраняем историю в файл с явной кодировкой utf-8."""
@@ -395,20 +407,38 @@ class ChatModel:
         history_data = {
             'messages': data.get('messages', []),
             'currentInfo': data.get('currentInfo', {}),
-            'MitaSystemMessages': data.get('MitaSystemMessages', [])
+            'MitaSystemMessages': data.get('MitaSystemMessages', []),
+            # Сохраняем переменные в историю
+            'attitude': self.attitude,
+            'boredom': self.boredom,
+            'stress': self.stress,
+            'secretExposed': self.secretExposed,
         }
 
         with open(self.history_file, 'w', encoding='utf-8') as f:
             json.dump(history_data, f, ensure_ascii=False, indent=4)
 
     def clear_history(self):
-        """Очищаем историю чатов."""
-        # Сохраняем пустые значения для сообщений и текущей информации
-        self.save_history({
-            'messages': [],
-            'currentInfo': {}  # Очистка информации о текущем состоянии игры
-        })
+        """Очищаем историю чатов и восстанавливаем начальные значения переменных."""
+        # Сбрасываем переменные к их значениям по умолчанию
+        self.attitude = 60
+        self.boredom = 0
+        self.stress = 0
+        self.secretExposed = False
+        # Сохраняем пустую историю
+        self.save_history(self._default_history())
 
+    def _default_history(self):
+        """Создаем структуру истории по умолчанию."""
+        return {
+            'messages': [],
+            'currentInfo': {},
+            'MitaSystemMessages': [],
+            'attitude': 60,
+            'boredom': 0,
+            'stress': 0,
+            'secretExposed': False,
+        }
 
 def clamp(value, min_value, max_value):
     return max(min_value, min(value, max_value))
