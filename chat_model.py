@@ -385,21 +385,31 @@ class ChatModel:
         try:
             with open(self.history_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
+                print("Загрузка истории")
+                print(data)
                 # Проверяем наличие ключей и их типов
                 if (isinstance(data.get('messages'), list) and
                         isinstance(data.get('currentInfo'), dict) and
                         isinstance(data.get('MitaSystemMessages'), list)):
+
                     # Загружаем переменные, если они есть в истории
                     self.attitude = data.get('attitude', 60)
                     self.boredom = data.get('boredom', 0)
                     self.stress = data.get('stress', 0)
                     self.secretExposed = data.get('secretExposed', False)
+
+                    currentInfo = data.get('currentInfo')
+                    self.MitaMainBehaviour = currentInfo.get('MitaMainBehaviour', [])
+                    self.MitaExamples = currentInfo.get('MitaExamples', [])
+                    self.systemMessages = currentInfo.get('MitaSystemMessages', [])
+
                     return data
                 else:
-
+                    print("Ошибка загрузки истории")
                     return self._default_history()
         except (json.JSONDecodeError, FileNotFoundError):
             # Если файл пуст или не существует, возвращаем структуру по умолчанию
+            print("Ошибка загрузки истории")
             return self._default_history()
 
     def save_history(self, data):
@@ -440,6 +450,7 @@ class ChatModel:
             'stress': 0,
             'secretExposed': False,
         }
+
 
 def clamp(value, min_value, max_value):
     return max(min_value, min(value, max_value))
