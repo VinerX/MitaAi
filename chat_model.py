@@ -417,6 +417,7 @@ class ChatModel:
                     self.boredom = data.get('boredom', 0)
                     self.stress = data.get('stress', 0)
                     self.secretExposed = data.get('secretExposed', False)
+                    self.secretExposedFirst = data.get('secretExposedFirst', False)
 
                     currentInfo = data.get('currentInfo')
                     self.MitaMainBehaviour = currentInfo.get('MitaMainBehaviour', [])
@@ -444,6 +445,7 @@ class ChatModel:
             'boredom': self.boredom,
             'stress': self.stress,
             'secretExposed': self.secretExposed,
+            'secretExposedFirst': self.secretExposedFirst
         }
 
         with open(self.history_file, 'w', encoding='utf-8') as f:
