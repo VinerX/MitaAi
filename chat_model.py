@@ -64,7 +64,7 @@ class ChatModel:
         self.MitaMainBehaviour = []
         self.MitaExamples = []
         self.systemMessages = []
-        self.HideAiData = False
+        self.HideAiData = True
         #print_ip_and_country()
 
     def load_prompts(self):
