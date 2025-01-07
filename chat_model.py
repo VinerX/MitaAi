@@ -458,6 +458,7 @@ class ChatModel:
         self.boredom = 0
         self.stress = 0
         self.secretExposed = False
+        self.secretExposedFirst = False
         # Сохраняем пустую историю
         self.save_history(self._default_history())
 
@@ -471,6 +472,7 @@ class ChatModel:
             'boredom': 0,
             'stress': 0,
             'secretExposed': False,
+            'secretExposedFirst': False,
         }
 
 
