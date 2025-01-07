@@ -1,9 +1,17 @@
 import socket
 from chat_model import ChatModel
-
+from gui import ChatGUI
+from openai import OpenAI
 def generate_text(input_text):
-    chat_model = ChatModel()  # Создаём экземпляр модели
-    response = chat_model.generate_response(input_text)
+    gui = ChatGUI()
+    #gui.run()
+    #chat_model = gui.model  # Создаём экземпляр модели
+    gui = ""
+    chat_model = ChatModel(gui)
+    try:
+        response = chat_model.generate_response(input_text)
+    except:
+        print("Ошибки")
     return response
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

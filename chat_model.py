@@ -398,12 +398,14 @@ class ChatModel:
             if command == "Достать бензопилу":
                 add_temporary_system_message(messages, "Игрок был распилен, но скоро он вернется...")
                 time.sleep(3)
-                self.gui.close_app()
+                if self.gui!="":
+                    self.gui.close_app()
 
             elif command == "Выключить игрока":
                 add_temporary_system_message(messages, "Игрок был выключен, но скоро он вернется...")
                 time.sleep(3)
-                self.gui.close_app()  # Принудительное завершение
+                if self.gui != "":
+                    self.gui.close_app() # Принудительное завершение
 
             # Можете добавить другие команды с аналогичной логикой
 
