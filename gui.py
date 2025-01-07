@@ -5,7 +5,7 @@ from chat_model import ChatModel
 class ChatGUI:
 
     def __init__(self):
-        self.model = ChatModel()
+        self.model = ChatModel(self)
         self.root = tk.Tk()
         self.root.title("Чат с MitaAI")
         self.api_key = "sk-Ct9J32W6P6yJpuoOLOYYp9nundsVbqJA"
@@ -292,3 +292,8 @@ class ChatGUI:
 
     def run(self):
         self.root.mainloop()
+
+    def close_app(self):
+        """Закрытие приложения корректным образом."""
+        print("Завершение программы...")
+        self.root.destroy()  # Закрывает GUI

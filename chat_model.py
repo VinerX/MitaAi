@@ -6,7 +6,7 @@ from openai import OpenAI
 import os
 import sys
 import datetime
-
+import time
 from g4f.client import Client
 
 
@@ -25,7 +25,8 @@ def add_temporary_system_message(messages, content):
 
 
 class ChatModel:
-    def __init__(self):
+    def __init__(self, gui):
+        self.gui = gui
 
         self.api_key = "sk-Ct9J32W6P6yJpuoOLOYYp9nundsVbqJA"
         self.api_url = "https://api.proxyapi.ru/openai/v1"
@@ -224,7 +225,6 @@ class ChatModel:
         messages.append({"role": "system", "content": f"Текущее время: {date_now}."})
         messages.append({"role": "user", "content": user_input})
 
-
         # Ограничение на сообщения
         messages = messages[-self.memory_limit:]
 
@@ -284,14 +284,12 @@ class ChatModel:
                 'currentInfo': current_info
             })
 
-
             return response
         except Exception as e:
             print(f"Ошибка на фазе генерации: {e}")
             return f"Ошибка на фазе генерации: {e}"
 
-
-    def process_response(self, user_input, response,messages):
+    def process_response(self, user_input, response, messages):
 
         try:
             # Обрабатываем изменение состояния Секрета
@@ -301,7 +299,7 @@ class ChatModel:
             response = self.process_behavior_changes(response)
 
             #Выполняет команды
-            response = self.process_commands(response,messages)
+            response = self.process_commands(response, messages)
 
             # Возвращаем обработанный ответ для дальнейшей работы
             return response.strip()
@@ -352,7 +350,7 @@ class ChatModel:
             return response
         return response
 
-    def process_commands(self, response,messages):
+    def process_commands(self, response, messages):
         """
         Обрабатывает команды типа <c>...</c> в ответе.
         Команды могут быть: "Достать бензопилу", "Выключить игрока" и другие.
@@ -369,12 +367,14 @@ class ChatModel:
 
             # Обработка команды в зависимости от условий
             if command == "Достать бензопилу":
-                add_temporary_system_message(messages,"Игрок был распилен, но скоро он вернется...")
-                os._exit(0)  # Принудительное завершение
+                add_temporary_system_message(messages, "Игрок был распилен, но скоро он вернется...")
+                time.sleep(3)
+                self.gui.close_app()
 
             elif command == "Выключить игрока":
                 add_temporary_system_message(messages, "Игрок был выключен, но скоро он вернется...")
-                os._exit(0)  # Принудительное завершение
+                time.sleep(3)
+                self.gui.close_app()  # Принудительное завершение
 
             # Можете добавить другие команды с аналогичной логикой
 
@@ -396,6 +396,7 @@ class ChatModel:
                     self.secretExposed = data.get('secretExposed', False)
                     return data
                 else:
+
                     return self._default_history()
         except (json.JSONDecodeError, FileNotFoundError):
             # Если файл пуст или не существует, возвращаем структуру по умолчанию
