@@ -49,10 +49,10 @@ class ChatModel:
         self.cost_response_per_1000 = 0.1728
         self.history_file = "chat_history.json"
         self.chat_history = self.load_history().get('messages', [])
-        self.memory_limit = 30  # Ограничение сообщения
+        self.memory_limit = 35  # Ограничение сообщения
         self.attitude = 60
-        self.boredom = 0
-        self.stress = 0
+        self.boredom = 10
+        self.stress = 5
 
         self.secretExposed = False
         self.secretExposedFirst = False
@@ -241,22 +241,38 @@ class ChatModel:
         # Добавляем systemMessages, если они не пустые
         if self.systemMessages:
             combined_messages.extend(self.systemMessages)
+            print("systemMessages успешно добавлены. Количество:", len(self.systemMessages))
+        else:
+            print("systemMessages пусты, пропущены.")
 
         # Добавляем MitaExamples, если это словарь
         if isinstance(self.MitaExamples, dict):
             combined_messages.append(self.MitaExamples)
+            print("MitaExamples успешно добавлен.")
+        else:
+            print("MitaExamples не является словарем или отсутствует, пропущен.")
 
         # Добавляем MitaMainBehaviour, если это словарь
         if isinstance(self.MitaMainBehaviour, dict):
             combined_messages.append(self.MitaMainBehaviour)
+            print("MitaMainBehaviour успешно добавлен.")
+        else:
+            print("MitaMainBehaviour не является словарем или отсутствует, пропущен.")
 
         # Добавляем timed_system_message, если это словарь
         if isinstance(timed_system_message, dict):
             combined_messages.append(timed_system_message)
+            print("timed_system_message успешно добавлено.")
+        else:
+            print("timed_system_message не является словарем или отсутствует, пропущено.")
 
         # Добавляем messages, если они не пустые
         if messages:
             combined_messages.extend(messages)
+            print("messages успешно добавлены. Количество:", len(messages))
+        else:
+            print("messages пусты, пропущены.")
+
 
         for idx, msg in enumerate(combined_messages):
             if not isinstance(msg, dict) or "role" not in msg or "content" not in msg:
