@@ -57,11 +57,21 @@ class ChatModel:
         self.secretExposed = False
         self.secretExposedFirst = False
         # Загрузка данных из файлов
+        self.PlayingFirst = False
+
+        self.load_prompts()
+
+        self.MitaMainBehaviour = []
+        self.MitaExamples = []
+        self.systemMessages = []
+        self.HideAiData = False
+        #print_ip_and_country()
+
+    def load_prompts(self):
         self.common = self.load_text_from_file("Promts/Main/common.txt")
         self.main = self.load_text_from_file("Promts/Main/main.txt")
         self.player = self.load_text_from_file("Promts/Main/player.txt")
         self.mainPlaying = self.load_text_from_file("Promts/Main/mainPlaing.txt")
-        self.PlayingFirst = False
         self.mainCrazy = self.load_text_from_file("Promts/Main/mainCrazy.txt")
 
         self.examplesLong = self.load_text_from_file("Promts/Context/examplesLong.txt")
@@ -74,12 +84,6 @@ class ChatModel:
         self.response_structure = self.load_text_from_file("Promts/Structural/response_structure.txt")
 
         self.SecretExposed = self.load_text_from_file("Promts/Events/SecretExposed.txt")
-
-        self.MitaMainBehaviour = []
-        self.MitaExamples = []
-        self.systemMessages = []
-        self.HideAiData = False
-        #print_ip_and_country()
 
     @staticmethod
     def load_text_from_file(file_path):

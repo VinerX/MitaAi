@@ -52,6 +52,8 @@ class ChatGUI:
         self.setup_stress_controls()
 
         self.setup_secret_controls()
+
+        self.setup_update_promts()
         self.setup_history_controls()
         self.setup_debug_controls()
         self.setup_api_controls()
@@ -134,6 +136,17 @@ class ChatGUI:
             bg="#2c2c2c", fg="#ffffff", command=self.adjust_secret
         )
         secret_checkbox.pack(side=tk.LEFT, padx=5)
+
+    def setup_update_promts(self):
+        update_promts_frame = tk.Frame(self.root, bg="#2c2c2c")
+        update_promts_frame.pack(fill=tk.X, pady=5)
+
+        # Кнопка для обновления промтов
+        update_button = tk.Button(
+            update_promts_frame, text="Обновить промты раскрыт",
+            bg="#2c2c2c", fg="#ffffff", command=self.model.load_prompts
+        )
+        update_button.pack(side=tk.LEFT, padx=5)
 
     def setup_history_controls(self):
         history_frame = tk.Frame(self.root, bg="#2c2c2c")
