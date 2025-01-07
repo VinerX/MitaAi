@@ -150,7 +150,7 @@ class ChatModel:
         else:
             self.client = OpenAI(api_key=self.api_key)
 
-    def generate_response(self, user_input):
+    def generate_response(self, user_input, system_input=""):
         # Загрузка истории из файла
         history_data = self.load_history()
 
@@ -223,7 +223,11 @@ class ChatModel:
         # Речь игрока
         date_now = datetime.datetime.now()
         messages.append({"role": "system", "content": f"Текущее время: {date_now}."})
-        messages.append({"role": "user", "content": user_input})
+
+        if system_input != "":
+            messages.append({"role": "system", "content": system_input})
+        if user_input != "":
+            messages.append({"role": "user", "content": user_input})
 
         # Ограничение на сообщения
         messages = messages[-self.memory_limit:]

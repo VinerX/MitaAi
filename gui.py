@@ -44,6 +44,8 @@ class ChatGUI:
         self.user_entry.bind("<Control-Insert>", self.paste_from_clipboard)
         # Привязка обработчика для Ctrl+C
         self.user_entry.bind("<Control-KeyPress-C>", self.copy_to_clipboard)
+        # Устанавливаем обработчик закрытия
+        self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         self.setup_attitude_controls()
         self.setup_boredom_controls()
@@ -55,6 +57,8 @@ class ChatGUI:
         self.setup_api_controls()
 
         self.load_chat_history()  # Загрузить историю чата
+
+        self.send_message("Игрок только что зашел в игру")
 
     def setup_attitude_controls(self):
         attitude_frame = tk.Frame(self.root, bg="#2c2c2c")
@@ -273,15 +277,16 @@ class ChatGUI:
             )
             self.update_debug_info()
 
-    def send_message(self):
+    def send_message(self, system_input=""):
         user_input = self.user_entry.get()
-        if not user_input.strip():
+        if not user_input.strip() and system_input == "":
             return
 
-        self.chat_window.insert(tk.END, f"Вы: {user_input}\n", "user")
-        self.user_entry.delete(0, tk.END)
+        if user_input!="":
+            self.chat_window.insert(tk.END, f"Вы: {user_input}\n", "user")
+            self.user_entry.delete(0, tk.END)
 
-        response = self.model.generate_response(user_input)
+        response = self.model.generate_response(user_input, system_input)
         self.chat_window.insert(tk.END, f"Мита: {response}\n\n", "gpt")
         self.update_debug_info()
 
@@ -292,6 +297,12 @@ class ChatGUI:
 
     def run(self):
         self.root.mainloop()
+
+    def on_closing(self):
+        self.send_message("Игрок покинул игру")
+        print("Закрываемся")
+        self.root.destroy()
+        #1
 
     def close_app(self):
         """Закрытие приложения корректным образом."""
