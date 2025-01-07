@@ -292,6 +292,11 @@ class ChatModel:
             )
             response = completion.choices[0].message.content
 
+            print("До: \n"+response)
+
+            #response = self.generate_response_check(response)
+            #print("После: \n" + response)
+
             # Добавляем ответ в правильном формате
             messages.append({"role": "assistant", "content": response})
             # Сохраняем историю в файл
@@ -474,6 +479,33 @@ class ChatModel:
             'secretExposed': False,
             'secretExposedFirst': False,
         }
+
+    def generate_response_check(self, message_text, system_input=""):
+        # Формируем сообщение для запроса к модели
+        messages = [
+            {
+                "role": "system",
+                "content": "Далее будет сообщение от лица персонажа. Не теряй и не удаляй служебные сообщения. Исправь сообщение, где оно звучит неестественно. С высоким шансом убери фразы по типу 'В этом мире...' "
+            },
+            {
+                "role": "user",
+                "content": message_text
+            }
+        ]
+
+        try:
+            # Отправляем запрос к модели
+            completion = self.client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=messages
+            )
+            # Достаем сообщение из ответа API
+            response_message = completion.choices[0].message.content
+            return response_message
+        except Exception as e:
+            # Обрабатываем возможные ошибки
+            return f"Ошибка при генерации ответа: {str(e)}"
+
 
 
 def clamp(value, min_value, max_value):
