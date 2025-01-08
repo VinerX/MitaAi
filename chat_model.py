@@ -28,10 +28,10 @@ class ChatModel:
     def __init__(self, gui):
         self.gui = gui
 
-        self.api_key = "sk-Ct9J32W6P6yJpuoOLOYYp9nundsVbqJA"
+        self.api_key = "sk-PkNRM8HNkAeVadcJEwKVW6c8OTtafs6f"
         self.api_url = "https://api.proxyapi.ru/openai/v1"
 
-        self.client = OpenAI(api_key="sk-Ct9J32W6P6yJpuoOLOYYp9nundsVbqJA",
+        self.client = OpenAI(api_key="sk-PkNRM8HNkAeVadcJEwKVW6c8OTtafs6f",
                              base_url="https://api.proxyapi.ru/openai/v1")
 
         #self.client = Client()

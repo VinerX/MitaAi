@@ -1,14 +1,22 @@
 import tkinter as tk
 from chat_model import ChatModel
+from server import ChatServer
+import threading
 
 
 class ChatGUI:
 
     def __init__(self):
         self.model = ChatModel(self)
+        self.server = ChatServer(self.model)
+
+        self.server_thread = None
+        self.running = False
+        self.start_server()
+
         self.root = tk.Tk()
         self.root.title("Чат с MitaAI")
-        self.api_key = "sk-Ct9J32W6P6yJpuoOLOYYp9nundsVbqJA"
+        self.api_key = "sk-PkNRM8HNkAeVadcJEwKVW6c8OTtafs6f"
         self.api_url = "https://api.proxyapi.ru/openai/v1"
         self.setup_ui()
 
@@ -60,7 +68,7 @@ class ChatGUI:
 
         self.load_chat_history()  # Загрузить историю чата
 
-        self.send_message("Игрок только что зашел в игру")
+        #self.send_message("Игрок только что зашел в игру")
 
     def setup_attitude_controls(self):
         attitude_frame = tk.Frame(self.root, bg="#2c2c2c")
@@ -295,11 +303,25 @@ class ChatGUI:
         if not user_input.strip() and system_input == "":
             return
 
-        if user_input!="":
+        if user_input != "":
             self.chat_window.insert(tk.END, f"Вы: {user_input}\n", "user")
             self.user_entry.delete(0, tk.END)
 
         response = self.model.generate_response(user_input, system_input)
+        # Отправка сообщения на сервер
+        if self.server:
+            try:
+                # Отправляем сообщение клиенту через сервер
+                if self.server.client_socket:
+                    self.server.client_socket.send(response.encode('utf-8'))
+                    print("Сообщение отправлено на сервер.")
+                else:
+                    print("Нет активного подключения к клиенту.")
+            except Exception as e:
+                print(f"Ошибка при отправке сообщения на сервер: {e}")
+
+        # Генерация ответа модели для локального отображения (опционально)
+
         self.chat_window.insert(tk.END, f"Мита: {response}\n\n", "gpt")
         self.update_debug_info()
 
@@ -311,7 +333,31 @@ class ChatGUI:
     def run(self):
         self.root.mainloop()
 
+    def start_server(self):
+        """Запускает сервер в отдельном потоке."""
+        if not self.running:
+            self.running = True
+            self.server.start()  # Инициализация сокета
+            self.server_thread = threading.Thread(target=self.run_server_loop, daemon=True)
+            self.server_thread.start()
+            print("Сервер запущен.")
+
+    def stop_server(self):
+        """Останавливает сервер."""
+        if self.running:
+            self.running = False
+            self.server.stop()
+            print("Сервер остановлен.")
+
+    def run_server_loop(self):
+        """Цикл обработки подключений сервера."""
+        while self.running:
+            needUpdate = self.server.handle_connection()
+            if needUpdate:
+                self.load_chat_history()
+
     def on_closing(self):
+        self.stop_server()
         self.send_message("Игрок покинул игру")
         print("Закрываемся")
         self.root.destroy()
