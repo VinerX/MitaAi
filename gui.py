@@ -8,7 +8,7 @@ class ChatGUI:
 
     def __init__(self):
         self.model = ChatModel(self)
-        self.server = ChatServer(self.model,self)
+        self.server = ChatServer(self,self.model)
 
         self.server_thread = None
         self.running = False
@@ -299,8 +299,8 @@ class ChatGUI:
             self.update_debug_info()
 
     def insertDialog(self,input_text,response):
-        self.gui.chat_window.insert(tk.END, f"Вы: {input_text}\n", "user")
-        self.gui.chat_window.insert(tk.END, f"Мита: {response}\n", "Gpt")
+        self.chat_window.insert(tk.END, f"Вы: {input_text}\n", "user")
+        self.chat_window.insert(tk.END, f"Мита: {response}\n", "Gpt")
 
     def send_message(self, system_input=""):
         user_input = self.user_entry.get()
@@ -312,7 +312,7 @@ class ChatGUI:
             self.user_entry.delete(0, tk.END)
 
         response = self.model.generate_response(user_input, system_input)
-        self.chat_window.insert(tk.END, f"Мита: {response}\n", "gpt")
+        self.chat_window.insert(tk.END, f"Мита: {response}\n\n", "gpt")
         # Отправка сообщения на сервер
         if self.server:
             try:
@@ -327,7 +327,7 @@ class ChatGUI:
 
         # Генерация ответа модели для локального отображения (опционально)
 
-        self.chat_window.insert(tk.END, f"Мита: {response}\n\n", "gpt")
+
         self.update_debug_info()
 
 

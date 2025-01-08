@@ -1,5 +1,4 @@
 import socket
-from chat_model import ChatModel
 
 
 class ChatServer:
