@@ -417,7 +417,6 @@ class ChatModel:
             with open(self.history_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 print("Загрузка истории")
-                print(data)
                 # Проверяем наличие ключей и их типов
                 if (isinstance(data.get('messages'), list) and
                         isinstance(data.get('currentInfo'), dict) and
