@@ -8,7 +8,7 @@ class ChatGUI:
 
     def __init__(self):
         self.model = ChatModel(self)
-        self.server = ChatServer(self.model)
+        self.server = ChatServer(self.model,self)
 
         self.server_thread = None
         self.running = False
@@ -298,6 +298,10 @@ class ChatGUI:
             )
             self.update_debug_info()
 
+    def insertDialog(self,input_text,response):
+        self.gui.chat_window.insert(tk.END, f"Вы: {input_text}\n", "user")
+        self.gui.chat_window.insert(tk.END, f"Мита: {response}\n", "Gpt")
+
     def send_message(self, system_input=""):
         user_input = self.user_entry.get()
         if not user_input.strip() and system_input == "":
@@ -308,12 +312,13 @@ class ChatGUI:
             self.user_entry.delete(0, tk.END)
 
         response = self.model.generate_response(user_input, system_input)
+        self.chat_window.insert(tk.END, f"Мита: {response}\n", "gpt")
         # Отправка сообщения на сервер
         if self.server:
             try:
                 # Отправляем сообщение клиенту через сервер
                 if self.server.client_socket:
-                    self.server.client_socket.send(response.encode('utf-8'))
+                    self.server.send_message_to_server(response)
                     print("Сообщение отправлено на сервер.")
                 else:
                     print("Нет активного подключения к клиенту.")
@@ -324,6 +329,7 @@ class ChatGUI:
 
         self.chat_window.insert(tk.END, f"Мита: {response}\n\n", "gpt")
         self.update_debug_info()
+
 
     def clear_history(self):
         self.model.clear_history()
