@@ -31,11 +31,11 @@ class ChatServer:
         try:
             # Ожидание подключения
             self.client_socket, addr = self.server_socket.accept()
-            print(f"Подключен {addr}")
+            #print(f"Подключен {addr}")
 
             # Получение сообщения от клиента
             message = self.client_socket.recv(1024).decode('utf-8')
-            print(f"Получено сообщение: {message}")
+            #print(f"Получено сообщение: {message}")
 
             response = ""
             if message == "waiting" and len(self.MessagesToSay)>0:
@@ -47,6 +47,7 @@ class ChatServer:
 
             # Отправка ответа обратно клиенту
             self.client_socket.send(response.encode('utf-8'))
+            print("Отправлено Мите на озвучку"+response)
             return True
         except Exception as e:
             print(f"Ошибка обработки подключения: {e}")
