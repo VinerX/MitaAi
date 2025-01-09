@@ -43,11 +43,13 @@ class ChatServer:
             elif message == "boring":
                 date_now = datetime.datetime.now()
                 response = self.generate_response("",f"Время{date_now}, Игрок долго молчит( Ты можешь что-то сказать или предпринять")
+                self.gui.insertDialog("",response)
+                print("Отправлено Мите на озвучку: " + response)
 
 
             # Отправка ответа обратно клиенту
             self.client_socket.send(response.encode('utf-8'))
-            print("Отправлено Мите на озвучку"+response)
+
             return True
         except Exception as e:
             print(f"Ошибка обработки подключения: {e}")

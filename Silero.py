@@ -16,17 +16,19 @@ async def main():
     print("Успешно авторизован!")
 
     # Отправка сообщения другому боту
-    silero_bot = '@silero_voice_bot'  # Юзернейм Silero бота
-    await client.send_message(silero_bot, "Привет! Это тестовое сообщение.")
+    #silero_bot = '@silero_voice_bot'  # Юзернейм Silero бота
+    #await client.send_message(silero_bot, "Привет! Это тестовое сообщение.")
 
     # Перехват сообщений от Silero бота
-    @client.on(events.NewMessage(from_users=silero_bot))
-    async def handler(event):
-        print(f"Новое сообщение от Silero: {event.message.text}")
+    #@client.on(events.NewMessage(from_users=silero_bot))
+    #async def handler(event):
+     #   print(f"Новое сообщение от Silero: {event.message.text}")
 
         # Отправить сообщение самому себе
-        await client.send_message('me', f"Ответ от Silero: {event.message.text}")
-
+      #  await client.send_message('me', f"Ответ от Silero: {event.message.text}")
+    # Закрытие сессии
+    await client.disconnect()
+    print("Сессия закрыта.")
 
 # Запуск клиента
 with client:

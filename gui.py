@@ -298,9 +298,11 @@ class ChatGUI:
             )
             self.update_debug_info()
 
-    def insertDialog(self,input_text,response):
-        self.chat_window.insert(tk.END, f"Вы: {input_text}\n", "user")
-        self.chat_window.insert(tk.END, f"Мита: {response}\n", "Gpt")
+    def insertDialog(self,input_text="",response=""):
+        if input_text != "":
+            self.chat_window.insert(tk.END, f"Вы: {input_text}\n", "user")
+        if response != "":
+            self.chat_window.insert(tk.END, f"Мита: {response}\n", "Gpt")
 
     def send_message(self, system_input=""):
         user_input = self.user_entry.get()
