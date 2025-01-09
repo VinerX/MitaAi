@@ -161,82 +161,34 @@ class ChatModel:
         messages = history_data.get('messages', [])
         current_info = history_data.get('currentInfo', {})
 
-        print(
-            f"mood: {self.attitude}, secretExposed: {self.secretExposed}, secretExposedFirst: {self.secretExposedFirst}")
-        # Первый раз - вводная
+        print(f"mood: {self.attitude}, secretExposed: {self.secretExposed}, secretExposedFirst: {self.secretExposedFirst}")
+
+
+
+        # Логика для первой фазы (вводная информация)
         if len(messages) == 0:
-            self.MitaMainBehaviour = {
-                "role": "system",
-                "content": f"{self.main}\n"
-            }
-            self.MitaExamples = {
-                "role": "system",
-                "content": f"{self.examplesLong}\n"
-            }
-            self.systemMessages.insert(0, {"role": "system", "content": f"{self.player}\n"})
-            self.systemMessages.insert(0, {"role": "system", "content": f"{self.response_structure}"})
+            self._initialize_conversation()
 
-
+        # Логика для поведения при игре с игроком
         elif self.attitude < 50 and not (self.secretExposed or self.PlayingFirst):
-            print("Играет с игроком в якобы невиновную")
-            self.PlayingFirst = True
+            self._start_playing_with_player()
 
-            self.MitaMainBehaviour = {
-                "role": "system",
-                "content": f"{self.mainPlaying}\n"
-            }
-
-
-        # Если секрет раскрыт
+        # Логика для раскрытия секрета
         elif (self.attitude <= 10 or self.secretExposed) and not self.secretExposedFirst:
-            print("Перестала играть вообще")
-            self.secretExposedFirst = True
-            self.MitaMainBehaviour = {
-                "role": "system",
-                "content": f"{self.mainCrazy}\n"
-                           f"{self.response_structure}"
-            }
-            self.MitaExamples = {
-                "role": "system",
-                "content": f"{self.examplesLongCrazy}\n"
-            }
-            system_message = {
-                "role": "system",
-                "content": f"{self.SecretExposed}"
+            self._reveal_secret()
 
-            }
-            messages.append(system_message)
-            system_message = {
-                "role": "system",
-                "content": f"{self.mita_history}\n"
-            }
-            self.systemMessages.append(system_message)
 
-        # Текущее настроение (обновление)
-        timed_system_message = {
-            "role": "system",
-            "content": (f"Твои характеристики. {self.variableEffects}"
-                        f"Отношение: {self.attitude}/100."
-                        f"Стресс: {self.stress}/100."
-                        f"Скука: {self.boredom}/100."
-                        f"Состояние секрета: {self.secretExposed}"
-                        f"{self.common}"
-                        )
-        }
 
-        # Речь игрока
-        date_now = datetime.datetime.now()
-        messages.append({"role": "system", "content": f"Текущее время: {date_now}."})
+        # Обновление текущего настроения
+        timed_system_message = self._generate_timed_system_message()
 
-        if system_input != "":
-            messages.append({"role": "system", "content": system_input})
-        if user_input != "":
-            messages.append({"role": "user", "content": user_input})
+        # Добавление информации о времени и пользовательского ввода
+        messages = self._process_user_input(user_input, system_input, messages)
 
-        # Ограничение на сообщения
+        # Ограничение на количество сообщений
         messages = messages[-self.memory_limit:]
 
-        # Обновляем текущую информацию
+        # Обновление текущей информации
         current_info.update({
             'MitaMainBehaviour': self.MitaMainBehaviour,
             'MitaExamples': self.MitaExamples,
@@ -244,70 +196,14 @@ class ChatModel:
         })
         current_info['MitaSystemMessages'] = self.systemMessages
 
-        combined_messages = []
+        combined_messages = self._combine_messages(messages, timed_system_message)
 
-        # Добавляем systemMessages, если они не пустые
-        if self.systemMessages:
-            combined_messages.extend(self.systemMessages)
-            print("systemMessages успешно добавлены. Количество:", len(self.systemMessages))
-        else:
-            print("systemMessages пусты, пропущены.")
-
-        # Добавляем MitaExamples, если это словарь
-        if isinstance(self.MitaExamples, dict):
-            combined_messages.append(self.MitaExamples)
-            print("MitaExamples успешно добавлен.")
-        else:
-            print("MitaExamples не является словарем или отсутствует, пропущен.")
-
-        # Добавляем MitaMainBehaviour, если это словарь
-        if isinstance(self.MitaMainBehaviour, dict):
-            combined_messages.append(self.MitaMainBehaviour)
-            print("MitaMainBehaviour успешно добавлен.")
-        else:
-            print("MitaMainBehaviour не является словарем или отсутствует, пропущен.")
-
-        # Добавляем timed_system_message, если это словарь
-        if isinstance(timed_system_message, dict):
-            combined_messages.append(timed_system_message)
-            print("timed_system_message успешно добавлено.")
-        else:
-            print("timed_system_message не является словарем или отсутствует, пропущено.")
-
-        # Добавляем messages, если они не пустые
-        if messages:
-            combined_messages.extend(messages)
-            print("messages успешно добавлены. Количество:", len(messages))
-        else:
-            print("messages пусты, пропущены.")
-
-
-        for idx, msg in enumerate(combined_messages):
-            if not isinstance(msg, dict) or "role" not in msg or "content" not in msg:
-                print(f"Ошибка в формате сообщения {idx}: {msg}")
-
+        # Генерация ответа с использованием клиента
         try:
-            completion = self.client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=combined_messages,
-                max_tokens=self.max_response_tokens,
-                presence_penalty=1.5,
-                temperature=0.6,
-            )
-            response = completion.choices[0].message.content
+            response = self._generate_chat_response(combined_messages)
 
-            print("До: \n"+response)
-
-            #response = self.generate_response_check(response)
-            #print("После: \n" + response)
-
-            # Добавляем ответ в правильном формате
-            messages.append({"role": "assistant", "content": response})
-            # Сохраняем историю в файл
-
-            # Процессинг ответа: изменяем показатели и удаляем служебное сообщение
+            # Процессинг ответа: изменяем показатели и сохраняем историю
             response = self.process_response(user_input, response, messages)
-
             self.save_history({
                 'messages': messages,
                 'currentInfo': current_info
@@ -317,6 +213,102 @@ class ChatModel:
         except Exception as e:
             print(f"Ошибка на фазе генерации: {e}")
             return f"Ошибка на фазе генерации: {e}"
+
+
+    def _initialize_conversation(self):
+        """Инициализация начальной беседы"""
+        self.MitaMainBehaviour = {"role": "system", "content": f"{self.main}\n"}
+        self.MitaExamples = {"role": "system", "content": f"{self.examplesLong}\n"}
+        self.systemMessages.insert(0, {"role": "system", "content": f"{self.player}\n"})
+        self.systemMessages.insert(0, {"role": "system", "content": f"{self.response_structure}"})
+
+    def _start_playing_with_player(self):
+        """Игровая логика, когда персонаж начинает играть с игроком"""
+        print("Играет с игроком в якобы невиновную")
+        self.PlayingFirst = True
+        self.MitaMainBehaviour = {"role": "system", "content": f"{self.mainPlaying}\n"}
+
+    def _reveal_secret(self):
+        """Логика раскрытия секрета"""
+        print("Перестала играть вообще")
+        self.secretExposedFirst = True
+        self.MitaMainBehaviour = {
+            "role": "system",
+            "content": f"{self.mainCrazy}\n{self.response_structure}"
+        }
+        self.MitaExamples = {"role": "system", "content": f"{self.examplesLongCrazy}\n"}
+        system_message = {"role": "system", "content": f"{self.SecretExposed}"}
+        self.systemMessages.append(system_message)
+        system_message = {"role": "system", "content": f"{self.mita_history}\n"}
+        self.systemMessages.append(system_message)
+
+    def _generate_timed_system_message(self):
+        """Генерация сообщения с текущим состоянием персонажа"""
+        return {
+            "role": "system",
+            "content": (f"Твои характеристики. {self.variableEffects}"
+                        f"Отношение: {self.attitude}/100."
+                        f"Стресс: {self.stress}/100."
+                        f"Скука: {self.boredom}/100."
+                        f"Состояние секрета: {self.secretExposed}"
+                        f"{self.common}")
+        }
+
+    def _process_user_input(self, user_input, system_input, messages):
+        """Обработка пользовательского ввода и добавление сообщений"""
+        date_now = datetime.datetime.now()
+        messages.append({"role": "system", "content": f"Текущее время: {date_now}."})
+
+        if system_input != "":
+            messages.append({"role": "system", "content": system_input})
+        if user_input != "":
+            messages.append({"role": "user", "content": user_input})
+
+        return messages
+
+    def _combine_messages(self, messages, timed_system_message):
+        """Комбинирование всех сообщений перед отправкой"""
+        combined_messages = []
+
+        # Добавляем systemMessages, если они не пустые
+        if self.systemMessages:
+            combined_messages.extend(self.systemMessages)
+            print("systemMessages успешно добавлены. Количество:", len(self.systemMessages))
+
+        # Добавляем MitaExamples, если это словарь
+        if isinstance(self.MitaExamples, dict):
+            combined_messages.append(self.MitaExamples)
+            print("MitaExamples успешно добавлен.")
+
+        # Добавляем MitaMainBehaviour, если это словарь
+        if isinstance(self.MitaMainBehaviour, dict):
+            combined_messages.append(self.MitaMainBehaviour)
+            print("MitaMainBehaviour успешно добавлен.")
+
+        # Добавляем timed_system_message, если это словарь
+        if isinstance(timed_system_message, dict):
+            combined_messages.append(timed_system_message)
+            print("timed_system_message успешно добавлено.")
+
+        # Добавляем messages, если они не пустые
+        if messages:
+            combined_messages.extend(messages)
+            print("messages успешно добавлены. Количество:", len(messages))
+
+        return combined_messages
+
+    def _generate_chat_response(self, combined_messages):
+        """Генерация ответа с помощью клиента"""
+        completion = self.client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=combined_messages,
+            max_tokens=self.max_response_tokens,
+            presence_penalty=1.5,
+            temperature=0.6,
+        )
+        response = completion.choices[0].message.content
+        print("Мита: \n" + response)
+        return response
 
     def process_response(self, user_input, response, messages):
 
@@ -398,14 +390,14 @@ class ChatModel:
             if command == "Достать бензопилу":
                 add_temporary_system_message(messages, "Игрок был распилен, но скоро он вернется...")
                 time.sleep(3)
-                if self.gui!="":
+                if self.gui != "":
                     self.gui.close_app()
 
             elif command == "Выключить игрока":
                 add_temporary_system_message(messages, "Игрок был выключен, но скоро он вернется...")
                 time.sleep(3)
                 if self.gui != "":
-                    self.gui.close_app() # Принудительное завершение
+                    self.gui.close_app()  # Принудительное завершение
 
             # Можете добавить другие команды с аналогичной логикой
 
@@ -510,7 +502,6 @@ class ChatModel:
         except Exception as e:
             # Обрабатываем возможные ошибки
             return f"Ошибка при генерации ответа: {str(e)}"
-
 
 
 def clamp(value, min_value, max_value):
