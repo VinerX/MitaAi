@@ -2,23 +2,138 @@ import tkinter as tk
 from chat_model import ChatModel
 from server import ChatServer
 import threading
+from Silero import TelegramBotHandler
+import asyncio
 
+
+import threading
+
+import asyncio
+import threading
+import tkinter as tk
+import time
+
+import asyncio
+import threading
+import tkinter as tk
 
 class ChatGUI:
-
     def __init__(self):
+        self.bot_handler = None
+        self.bot_handler_ready = False
         self.model = ChatModel(self)
-        self.server = ChatServer(self,self.model)
-
+        self.server = ChatServer(self, self.model)
         self.server_thread = None
         self.running = False
         self.start_server()
+        self.textToTalk = ""
 
         self.root = tk.Tk()
         self.root.title("Чат с MitaAI")
         self.api_key = "sk-PkNRM8HNkAeVadcJEwKVW6c8OTtafs6f"
         self.api_url = "https://api.proxyapi.ru/openai/v1"
         self.setup_ui()
+
+        # Событие для синхронизации потоков
+        self.loop_ready_event = threading.Event()
+
+        self.loop = None  # Переменная для хранения ссылки на цикл событий
+        self.asyncio_thread = threading.Thread(target=self.start_asyncio_loop, daemon=True)
+        self.asyncio_thread.start()
+
+        self.start_silero_async()
+
+        # Запуск проверки переменной textToTalk через after
+        self.root.after(100, self.check_text_to_talk)
+
+    def start_asyncio_loop(self):
+        """Запускает цикл событий asyncio в отдельном потоке."""
+        try:
+            self.loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self.loop)
+            print("Цикл событий asyncio успешно запущен.")
+            self.loop_ready_event.set()  # Сигнализируем, что цикл событий готов
+            self.loop.run_forever()
+        except Exception as e:
+            print(f"Ошибка при запуске цикла событий asyncio: {e}")
+
+    def start_silero_async(self):
+        """Отправляет задачу для запуска Silero в цикл событий."""
+        print("Ожидание готовности цикла событий...")
+        self.loop_ready_event.wait()  # Ждем, пока цикл событий будет готов
+        if self.loop and self.loop.is_running():
+            print("Запускаем Silero через цикл событий.")
+            asyncio.run_coroutine_threadsafe(self.startSilero(), self.loop)
+        else:
+            print("Ошибка: Цикл событий asyncio не запущен.")
+
+    async def startSilero(self):
+        """Асинхронный запуск обработчика Telegram Bot."""
+        print("Telegram Bot запускается!")
+        try:
+            self.bot_handler = TelegramBotHandler()
+            await self.bot_handler.start()
+            self.bot_handler_ready = True
+            print("Telegram Bot запущен!")
+        except Exception as e:
+            print(f"Ошибка при запуске Telegram Bot: {e}")
+
+    def run_in_thread(self, response):
+        """Запуск асинхронной задачи в отдельном потоке."""
+        # Убедимся, что цикл событий готов и запускаем задачу в том же цикле
+        self.loop_ready_event.wait()  # Ждем, пока цикл событий будет готов
+        if self.loop and self.loop.is_running():
+            print("Запускаем асинхронную задачу в цикле событий...")
+            # Здесь мы вызываем асинхронную задачу через главный цикл
+            self.loop.create_task(self.run_send_and_receive(self.textToTalk))
+        else:
+            print("Ошибка: Цикл событий asyncio не готов.")
+
+    async def run_send_and_receive(self, response):
+        """Асинхронный метод для вызова send_and_receive."""
+        print("Попытка получить фразу")
+        await self.bot_handler.send_and_receive(response)
+        print("Завершение получения фразы")
+
+    def check_text_to_talk(self):
+        """Периодическая проверка переменной self.textToTalk."""
+
+        if self.textToTalk != "":
+            print(f"Есть текст для отправки: {self.textToTalk}")
+            # Вызываем метод для отправки текста, если переменная не пуста
+            if self.loop and self.loop.is_running():
+                print("Цикл событий готов. Отправка текста.")
+                asyncio.run_coroutine_threadsafe(self.run_send_and_receive(self.textToTalk), self.loop)
+                self.textToTalk = ""  # Очищаем текст после отправки
+                print("Выполнено")
+            else:
+                print("Ошибка: Цикл событий не готов.")
+
+        # Перезапуск проверки через 100 миллисекунд
+        self.root.after(500, self.check_text_to_talk)  # Это обеспечит постоянную проверку
+
+    def start_server(self):
+        """Запускает сервер в отдельном потоке."""
+        if not self.running:
+            self.running = True
+            self.server.start()  # Инициализация сокета
+            self.server_thread = threading.Thread(target=self.run_server_loop, daemon=True)
+            self.server_thread.start()
+            print("Сервер запущен.")
+
+    def stop_server(self):
+        """Останавливает сервер."""
+        if self.running:
+            self.running = False
+            self.server.stop()
+            print("Сервер остановлен.")
+
+    def run_server_loop(self):
+        """Цикл обработки подключений сервера."""
+        while self.running:
+            needUpdate = self.server.handle_connection()
+            if needUpdate:
+                self.load_chat_history()
 
     def setup_ui(self):
         self.root.config(bg="#2c2c2c")  # Установите темный цвет фона для всего окна
@@ -298,7 +413,7 @@ class ChatGUI:
             )
             self.update_debug_info()
 
-    def insertDialog(self,input_text="",response=""):
+    def insertDialog(self, input_text="", response=""):
         if input_text != "":
             self.chat_window.insert(tk.END, f"Вы: {input_text}\n", "user")
         if response != "":
@@ -329,9 +444,7 @@ class ChatGUI:
 
         # Генерация ответа модели для локального отображения (опционально)
 
-
         self.update_debug_info()
-
 
     def clear_history(self):
         self.model.clear_history()
@@ -341,28 +454,6 @@ class ChatGUI:
     def run(self):
         self.root.mainloop()
 
-    def start_server(self):
-        """Запускает сервер в отдельном потоке."""
-        if not self.running:
-            self.running = True
-            self.server.start()  # Инициализация сокета
-            self.server_thread = threading.Thread(target=self.run_server_loop, daemon=True)
-            self.server_thread.start()
-            print("Сервер запущен.")
-
-    def stop_server(self):
-        """Останавливает сервер."""
-        if self.running:
-            self.running = False
-            self.server.stop()
-            print("Сервер остановлен.")
-
-    def run_server_loop(self):
-        """Цикл обработки подключений сервера."""
-        while self.running:
-            needUpdate = self.server.handle_connection()
-            if needUpdate:
-                self.load_chat_history()
 
     def on_closing(self):
         self.stop_server()

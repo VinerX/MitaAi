@@ -8,7 +8,7 @@ import sys
 import datetime
 import time
 from g4f.client import Client
-
+import re
 
 def add_temporary_system_message(messages, content):
     """
@@ -26,6 +26,7 @@ def add_temporary_system_message(messages, content):
 
 class ChatModel:
     def __init__(self, gui):
+
         self.gui = gui
 
         self.api_key = "sk-PkNRM8HNkAeVadcJEwKVW6c8OTtafs6f"
@@ -61,6 +62,7 @@ class ChatModel:
 
         self.load_prompts()
 
+        self.MitaLongMemory = None
         self.MitaMainBehaviour = []
         self.MitaExamples = []
         self.systemMessages = []
@@ -204,6 +206,11 @@ class ChatModel:
 
             # Процессинг ответа: изменяем показатели и сохраняем историю
             response = self.process_response(user_input, response, messages)
+
+            print("До фразы")
+            self.gui.textToTalk = response
+
+            self.update_memory_in_history()
             self.save_history({
                 'messages': messages,
                 'currentInfo': current_info
@@ -313,6 +320,10 @@ class ChatModel:
     def process_response(self, user_input, response, messages):
 
         try:
+
+            # Обрабатываем изменения в памяти
+            response = self.extract_and_process_memory_data(response)
+
             # Обрабатываем изменение состояния Секрета
             response = self.detect_secret_exposure(response)
 
@@ -328,6 +339,35 @@ class ChatModel:
         except Exception as e:
             print(f"Ошибка в обработке ответа: {e}")
             return response  # Возвращаем оригинальный ответ в случае ошибки
+
+    def extract_and_process_memory_data(self, response):
+        """
+        Извлекает данные из ответа, содержащего теги <+h></h><#h></h>,
+        и добавляет или переписывает их в память Миты.
+
+        :param response: Ответ, который нужно обработать.
+        :return: Обработанный ответ.
+        """
+        # Регулярное выражение для поиска тегов <+h></h><#h></h>
+        memory_pattern = r"<([+#]h)>.*?<\/\1>"
+
+        # Ищем все совпадения
+        matches = re.findall(memory_pattern, response)
+
+        if matches:
+            # Добавляем в память или переписываем в self.MitaLongMemory
+            for match in matches:
+                if match.startswith("+"):
+                    # Добавление нового воспоминания
+                    self.MitaLongMemory.append(f"Запомненное: {match[2:-4]}")
+                elif match.startswith("#"):
+                    # Переписывание всего воспоминания
+                    self.MitaLongMemory = [f"Переписанное: {match[2:-4]}"]
+
+            # Убираем все теги из ответа
+            response = re.sub(memory_pattern, "", response)
+
+        return response
 
     def process_behavior_changes(self, response):
         """
@@ -434,6 +474,21 @@ class ChatModel:
             # Если файл пуст или не существует, возвращаем структуру по умолчанию
             print("Ошибка загрузки истории")
             return self._default_history()
+
+    def update_memory_in_history(self):
+        """
+        Сохраняет измененную память (например, MitaLongMemory) в историю.
+        """
+        history_data = self.load_history()
+        current_info = history_data.get('currentInfo', {})
+        current_info['MitaLongMemory'] = self.MitaLongMemory
+
+        # Обновляем историю с новыми данными
+        self.save_history({
+            'messages': history_data.get('messages', []),
+            'currentInfo': current_info,
+            'MitaSystemMessages': history_data.get('MitaSystemMessages', [])
+        })
 
     def save_history(self, data):
         """Сохраняем историю в файл с явной кодировкой utf-8."""
