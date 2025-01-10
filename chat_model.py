@@ -370,7 +370,6 @@ class ChatModel:
         matches = re.findall(memory_pattern, response)
 
         if matches:
-            print("Найдены данные в памяти.")
             for tag_type, content in matches:
                 if tag_type == "+h":
                     print("Добавление воспоминания.")
