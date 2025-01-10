@@ -375,8 +375,8 @@ class ChatModel:
                     print("Добавление воспоминания.")
                     # Добавление нового воспоминания
                     self.MitaLongMemory["content"] = self.MitaLongMemory["content"].replace(
-                        "КонецДолгойПамяти<",
-                        f"{content}>КонецДолгойПамяти"
+                        "КонецДолгойПамяти",
+                        f"{content}КонецДолгойПамяти"
                     )
                 elif tag_type == "#h":
                     print("Переписывание воспоминания.")
