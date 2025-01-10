@@ -62,7 +62,7 @@ class ChatModel:
 
         self.load_prompts()
 
-        self.MitaLongMemory = None
+        self.MitaLongMemory = {"role": "system", "content": f" ДолгаяПамять<>КонецДолгойПамяти "}
         self.MitaMainBehaviour = []
         self.MitaExamples = []
         self.systemMessages = []
@@ -194,7 +194,8 @@ class ChatModel:
         current_info.update({
             'MitaMainBehaviour': self.MitaMainBehaviour,
             'MitaExamples': self.MitaExamples,
-            'timed_system_message': timed_system_message
+            'timed_system_message': timed_system_message,
+            'MitaLongMemory': self.MitaLongMemory
         })
         current_info['MitaSystemMessages'] = self.systemMessages
 
@@ -206,6 +207,13 @@ class ChatModel:
 
             # Процессинг ответа: изменяем показатели и сохраняем историю
             response = self.process_response(user_input, response, messages)
+
+
+            response_message = {
+                "role": "assistant",
+                "content": response
+            }
+            messages.append(response_message)
 
             print("До фразы")
             self.gui.textToTalk = response
@@ -292,6 +300,11 @@ class ChatModel:
             combined_messages.append(self.MitaMainBehaviour)
             print("MitaMainBehaviour успешно добавлен.")
 
+        # Добавляем MitaLongMemory, если это словарь
+        if isinstance(self.MitaLongMemory, dict):
+            combined_messages.append(self.MitaLongMemory)
+            print("MitaLongMemory успешно добавлен.")
+
         # Добавляем timed_system_message, если это словарь
         if isinstance(timed_system_message, dict):
             combined_messages.append(timed_system_message)
@@ -316,6 +329,8 @@ class ChatModel:
         response = completion.choices[0].message.content
         print("Мита: \n" + response)
         return response
+
+
 
     def process_response(self, user_input, response, messages):
 
@@ -342,27 +357,32 @@ class ChatModel:
 
     def extract_and_process_memory_data(self, response):
         """
-        Извлекает данные из ответа, содержащего теги <+h></h><#h></h>,
+        Извлекает данные из ответа, содержащего теги <+h>...</+h> или <#h>...</#h>,
         и добавляет или переписывает их в память Миты.
 
         :param response: Ответ, который нужно обработать.
         :return: Обработанный ответ.
         """
-        # Регулярное выражение для поиска тегов <+h></h><#h></h>
-        memory_pattern = r"<([+#]h)>.*?<\/\1>"
+        # Регулярное выражение для поиска тегов <+h>...</+h> или <#h>...</#h>
+        memory_pattern = r"<([+#]h)>(.*?)<\/h>"
 
         # Ищем все совпадения
         matches = re.findall(memory_pattern, response)
 
         if matches:
-            # Добавляем в память или переписываем в self.MitaLongMemory
-            for match in matches:
-                if match.startswith("+"):
+            print("Найдены данные в памяти.")
+            for tag_type, content in matches:
+                if tag_type == "+h":
+                    print("Добавление воспоминания.")
                     # Добавление нового воспоминания
-                    self.MitaLongMemory.append(f"Запомненное: {match[2:-4]}")
-                elif match.startswith("#"):
+                    self.MitaLongMemory["content"] = self.MitaLongMemory["content"].replace(
+                        "КонецДолгойПамяти<",
+                        f"{content}>КонецДолгойПамяти"
+                    )
+                elif tag_type == "#h":
+                    print("Переписывание воспоминания.")
                     # Переписывание всего воспоминания
-                    self.MitaLongMemory = [f"Переписанное: {match[2:-4]}"]
+                    self.MitaLongMemory["content"] = f" ДолгаяПамять<{content}>КонецДолгойПамяти "
 
             # Убираем все теги из ответа
             response = re.sub(memory_pattern, "", response)
@@ -442,6 +462,8 @@ class ChatModel:
             # Можете добавить другие команды с аналогичной логикой
 
         return response
+
+
 
     def load_history(self):
         """Загружаем историю из файла, создаем пустую структуру, если файл пуст или не существует."""
