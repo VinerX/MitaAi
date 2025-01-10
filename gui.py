@@ -430,6 +430,7 @@ class ChatGUI:
 
         response = self.model.generate_response(user_input, system_input)
         self.chat_window.insert(tk.END, f"Мита: {response}\n\n", "gpt")
+        self.update_debug_info()
         # Отправка сообщения на сервер
         if self.server:
             try:
