@@ -10,6 +10,7 @@ import time
 from g4f.client import Client
 import re
 
+
 def add_temporary_system_message(messages, content):
     """
     Добавляет одноразовое системное сообщение в список сообщений.
@@ -163,9 +164,8 @@ class ChatModel:
         messages = history_data.get('messages', [])
         current_info = history_data.get('currentInfo', {})
 
-        print(f"mood: {self.attitude}, secretExposed: {self.secretExposed}, secretExposedFirst: {self.secretExposedFirst}")
-
-
+        print(
+            f"mood: {self.attitude}, secretExposed: {self.secretExposed}, secretExposedFirst: {self.secretExposedFirst}")
 
         # Логика для первой фазы (вводная информация)
         if len(messages) == 0:
@@ -178,8 +178,6 @@ class ChatModel:
         # Логика для раскрытия секрета
         elif (self.attitude <= 10 or self.secretExposed) and not self.secretExposedFirst:
             self._reveal_secret()
-
-
 
         # Обновление текущего настроения
         timed_system_message = self._generate_timed_system_message()
@@ -208,7 +206,6 @@ class ChatModel:
             # Процессинг ответа: изменяем показатели и сохраняем историю
             response = self.process_response(user_input, response, messages)
 
-
             response_message = {
                 "role": "assistant",
                 "content": response
@@ -218,17 +215,22 @@ class ChatModel:
             print("До фразы")
             self.gui.textToTalk = response
 
-            self.update_memory_in_history()
+            #self.update_memory_in_history()
             self.save_history({
                 'messages': messages,
-                'currentInfo': current_info
+                'currentInfo': current_info,
+                # Сохраняем переменные в историю
+                'attitude': self.attitude,
+                'boredom': self.boredom,
+                'stress': self.stress,
+                'secretExposed': self.secretExposed,
+                'secretExposedFirst': self.secretExposedFirst
             })
 
             return response
         except Exception as e:
             print(f"Ошибка на фазе генерации: {e}")
             return f"Ошибка на фазе генерации: {e}"
-
 
     def _initialize_conversation(self):
         """Инициализация начальной беседы"""
@@ -329,8 +331,6 @@ class ChatModel:
         response = completion.choices[0].message.content
         print("Мита: \n" + response)
         return response
-
-
 
     def process_response(self, user_input, response, messages):
 
@@ -435,34 +435,46 @@ class ChatModel:
         Обрабатывает команды типа <c>...</c> в ответе.
         Команды могут быть: "Достать бензопилу", "Выключить игрока" и другие.
         """
-
         start_tag = "<c>"
         end_tag = "</c>"
+        search_start = 0  # Указатель для поиска новых команд
 
-        while start_tag in response and end_tag in response:
-            # Извлекаем команду
-            start_index = response.index(start_tag) + len(start_tag)
-            end_index = response.index(end_tag, start_index)
-            command = response[start_index:end_index]
+        while start_tag in response[search_start:] and end_tag in response[search_start:]:
+            try:
+                # Находим команду
+                start_index = response.index(start_tag, search_start) + len(start_tag)
+                end_index = response.index(end_tag, start_index)
+                command = response[start_index:end_index]
 
-            # Обработка команды в зависимости от условий
-            if command == "Достать бензопилу":
-                add_temporary_system_message(messages, "Игрок был распилен, но скоро он вернется...")
-                time.sleep(3)
-                if self.gui != "":
-                    self.gui.close_app()
+                # Логируем текущую команду
+                print(f"Обработка команды: {command}")
 
-            elif command == "Выключить игрока":
-                add_temporary_system_message(messages, "Игрок был выключен, но скоро он вернется...")
-                time.sleep(3)
-                if self.gui != "":
-                    self.gui.close_app()  # Принудительное завершение
+                # Обработка команды
+                if command == "Достать бензопилу":
+                    add_temporary_system_message(messages, "Игрок был распилен, но скоро он вернется...")
 
-            # Можете добавить другие команды с аналогичной логикой
+                    if self.gui:
+                        self.gui.close_app()
+
+                elif command == "Выключить игрока":
+                    add_temporary_system_message(messages, "Игрок был выключен, но скоро он вернется...")
+
+                    if self.gui:
+                        self.gui.close_app()
+
+                else:
+                    # Обработка неизвестных команд
+                    add_temporary_system_message(messages, f"Неизвестная команда: {command}")
+                    print(f"Неизвестная команда: {command}")
+
+                # Сдвигаем указатель поиска на следующий символ после текущей команды
+                search_start = end_index + len(end_tag)
+
+            except ValueError as e:
+                add_temporary_system_message(messages, f"Ошибка обработки команды: {e}")
+                break
 
         return response
-
-
 
     def load_history(self):
         """Загружаем историю из файла, создаем пустую структуру, если файл пуст или не существует."""
@@ -475,6 +487,7 @@ class ChatModel:
                         isinstance(data.get('currentInfo'), dict) and
                         isinstance(data.get('MitaSystemMessages'), list)):
 
+                    print("Историю получится заполнить")
                     # Загружаем переменные, если они есть в истории
                     self.attitude = data.get('attitude', 60)
                     self.boredom = data.get('boredom', 0)
@@ -486,6 +499,8 @@ class ChatModel:
                     self.MitaMainBehaviour = currentInfo.get('MitaMainBehaviour', [])
                     self.MitaExamples = currentInfo.get('MitaExamples', [])
                     self.systemMessages = currentInfo.get('MitaSystemMessages', [])
+                    self.MitaLongMemory = currentInfo.get('MitaLongMemory', {})
+
 
                     return data
                 else:
@@ -508,7 +523,14 @@ class ChatModel:
         self.save_history({
             'messages': history_data.get('messages', []),
             'currentInfo': current_info,
-            'MitaSystemMessages': history_data.get('MitaSystemMessages', [])
+            'MitaSystemMessages': history_data.get('MitaSystemMessages', []),
+
+            # Сохраняем переменные в историю
+            'attitude': self.attitude,
+            'boredom': self.boredom,
+            'stress': self.stress,
+            'secretExposed': self.secretExposed,
+            'secretExposedFirst': self.secretExposedFirst
         })
 
     def save_history(self, data):
@@ -530,6 +552,7 @@ class ChatModel:
             json.dump(history_data, f, ensure_ascii=False, indent=4)
 
     def clear_history(self):
+        print("ОЧИСТКА ИСТОРИИ!!!")
         """Очищаем историю чатов и восстанавливаем начальные значения переменных."""
         # Сбрасываем переменные к их значениям по умолчанию
         self.attitude = 60
@@ -541,6 +564,7 @@ class ChatModel:
         self.save_history(self._default_history())
 
     def _default_history(self):
+        print("ИСТОРИЧЕСКИЙ ДЕФОЛТ!!!")
         """Создаем структуру истории по умолчанию."""
         return {
             'messages': [],

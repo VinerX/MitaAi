@@ -10,7 +10,7 @@ class ChatServer:
         self.server_socket = None
         self.client_socket = None
         self.passive_client_socket = None
-        self.passive_server_socket = None;
+        self.passive_server_socket = None
         self.chat_model = chat_model
         self.MessagesToSay = list()
     def start(self):
@@ -38,14 +38,21 @@ class ChatServer:
             #print(f"Получено сообщение: {message}")
 
             response = ""
-            if message == "waiting" and len(self.MessagesToSay)>0:
-                response = self.MessagesToSay.pop(0)
+            if message == "":
+                ...
+            elif message == "waiting":
+                if len(self.MessagesToSay)>0:
+                    response = self.MessagesToSay.pop(0)
             elif message == "boring":
                 date_now = datetime.datetime.now()
                 response = self.generate_response("",f"Время{date_now}, Игрок долго молчит( Ты можешь что-то сказать или предпринять")
                 self.gui.insertDialog("",response)
                 print("Отправлено Мите на озвучку: " + response)
-
+            else:
+                # Если игрок отправил внутри игры, message его
+                response = self.generate_response(message,"")
+                #self.gui.insertDialog(message,response)
+                print("Отправлено Мите на озвучку: " + response)
 
             # Отправка ответа обратно клиенту
             self.client_socket.send(response.encode('utf-8'))

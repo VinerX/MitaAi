@@ -139,35 +139,39 @@ class ChatGUI:
         self.root.config(bg="#2c2c2c")  # Установите темный цвет фона для всего окна
 
         self.chat_window = tk.Text(
-            self.root, height=20, width=50, state=tk.NORMAL,
-            bg="#1e1e1e", fg="#ffffff", insertbackground="white", wrap=tk.WORD
+            self.root, height=30, width=80, state=tk.NORMAL,
+            bg="#1e1e1e", fg="#ffffff", insertbackground="white", wrap=tk.WORD,
+            font=("Arial", 12)
         )
         self.chat_window.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        # Добавляем теги для выделения имени
+        self.chat_window.tag_configure("user_name", foreground="#00bfff",
+                                       font=("Arial", 12, "bold"))  # Зеленый для "Вы"
+        self.chat_window.tag_configure("gpt_name", foreground="#8a2be2", font=("Arial", 12, "bold"))  # Синий для "Мита"
 
         input_frame = tk.Frame(self.root, bg="#2c2c2c")
         input_frame.pack(fill=tk.X, padx=10, pady=10)
 
-        self.user_entry = tk.Entry(input_frame, width=40, bg="#1e1e1e", fg="#ffffff", insertbackground="white")
+        self.user_entry = tk.Entry(input_frame, width=50, bg="#1e1e1e", fg="#ffffff", insertbackground="white",
+                                   font=("Arial", 12))
         self.user_entry.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=5)
         self.user_entry.bind("<KeyRelease>", self.update_token_count)
 
         self.send_button = tk.Button(
             input_frame, text="Отправить", command=self.send_message,
-            bg="#007acc", fg="#ffffff"
+            bg="#9370db", fg="#ffffff", font=("Arial", 12)
         )
         self.send_button.pack(side=tk.RIGHT, padx=5)
 
         self.token_count_label = tk.Label(
             self.root, text=f"Токенов: 0/{self.model.max_input_tokens} | Ориент. стоимость: 0.0000 ₽",
-            bg="#2c2c2c", fg="#ffffff"
+            bg="#2c2c2c", fg="#ffffff", font=("Arial", 12)
         )
         self.token_count_label.pack(fill=tk.X, pady=5)
 
-        # Привязка для вставки с использованием Control-Insert
         self.user_entry.bind("<Control-Insert>", self.paste_from_clipboard)
-        # Привязка обработчика для Ctrl+C
         self.user_entry.bind("<Control-KeyPress-C>", self.copy_to_clipboard)
-        # Устанавливаем обработчик закрытия
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         self.setup_attitude_controls()
@@ -181,9 +185,12 @@ class ChatGUI:
         self.setup_debug_controls()
         self.setup_api_controls()
 
-        self.load_chat_history()  # Загрузить историю чата
-
-        #self.send_message("Игрок только что зашел в игру")
+        self.load_chat_history()
+    def insert_message(self, role, content):
+        if role == "user":
+            self.chat_window.insert(tk.END, f"Вы: {content}\n", "user")
+        elif role == "assistant":
+            self.chat_window.insert(tk.END, f"Мита: {content}\n\n", "gpt")
 
     def setup_attitude_controls(self):
         attitude_frame = tk.Frame(self.root, bg="#2c2c2c")
@@ -196,13 +203,13 @@ class ChatGUI:
 
         mood_up_button = tk.Button(
             attitude_frame, text="+", command=lambda: self.adjust_attitude(15),
-            bg="#007acc", fg="#ffffff"
+            bg="#8a2be2", fg="#ffffff"
         )
         mood_up_button.pack(side=tk.RIGHT, padx=5)
 
         mood_down_button = tk.Button(
             attitude_frame, text="-", command=lambda: self.adjust_attitude(-15),
-            bg="#007acc", fg="#ffffff"
+            bg="#8a2be2", fg="#ffffff"
         )
         mood_down_button.pack(side=tk.RIGHT, padx=5)
 
@@ -217,13 +224,13 @@ class ChatGUI:
 
         stress_up_button = tk.Button(
             boredom_frame, text="+", command=lambda: self.adjust_boredom(15),
-            bg="#007acc", fg="#ffffff"
+            bg="#8a2be2", fg="#ffffff"
         )
         stress_up_button.pack(side=tk.RIGHT, padx=5)
 
         stress_down_button = tk.Button(
             boredom_frame, text="-", command=lambda: self.adjust_boredom(-15),
-            bg="#007acc", fg="#ffffff"
+            bg="#8a2be2", fg="#ffffff"
         )
         stress_down_button.pack(side=tk.RIGHT, padx=5)
 
@@ -238,13 +245,13 @@ class ChatGUI:
 
         stress_up_button = tk.Button(
             stress_frame, text="+", command=lambda: self.adjust_stress(15),
-            bg="#007acc", fg="#ffffff"
+            bg="#8a2be2", fg="#ffffff"
         )
         stress_up_button.pack(side=tk.RIGHT, padx=5)
 
         stress_down_button = tk.Button(
             stress_frame, text="-", command=lambda: self.adjust_stress(-15),
-            bg="#007acc", fg="#ffffff"
+            bg="#8a2be2", fg="#ffffff"
         )
         stress_down_button.pack(side=tk.RIGHT, padx=5)
 
@@ -277,7 +284,7 @@ class ChatGUI:
 
         clear_button = tk.Button(
             history_frame, text="Очистить историю", command=self.clear_history,
-            bg="#007acc", fg="#ffffff"
+            bg="#8a2be2", fg="#ffffff"
         )
         clear_button.pack(side=tk.LEFT, padx=5)
 
@@ -288,9 +295,14 @@ class ChatGUI:
             role = entry["role"]
             content = entry["content"]
             if role == "user":
-                self.chat_window.insert(tk.END, f"Вы: {content}\n", "user")
+                # Вставляем имя пользователя с зеленым цветом, а текст — обычным
+                self.chat_window.insert(tk.END, "Вы: ", "user_name")
+                self.chat_window.insert(tk.END, f"{content}\n")
             elif role == "assistant":
-                self.chat_window.insert(tk.END, f"Мита: {content}\n\n", "gpt")
+                # Вставляем имя Миты с синим цветом, а текст — обычным
+                self.chat_window.insert(tk.END, "Мита: ", "gpt_name")
+                self.chat_window.insert(tk.END, f"{content}\n\n")
+        self.update_debug_info()
 
     def setup_debug_controls(self):
         debug_frame = tk.Frame(self.root, bg="#2c2c2c")
@@ -336,7 +348,7 @@ class ChatGUI:
 
         save_button = tk.Button(
             self.api_settings_frame, text="Сохранить", command=self.save_api_settings,
-            bg="#007acc", fg="#ffffff"
+            bg="#8a2be2", fg="#ffffff"
         )
         save_button.grid(row=2, column=0, columnspan=2, pady=10)
 
@@ -415,9 +427,11 @@ class ChatGUI:
 
     def insertDialog(self, input_text="", response=""):
         if input_text != "":
-            self.chat_window.insert(tk.END, f"Вы: {input_text}\n", "user")
+            self.chat_window.insert(tk.END, "Вы: ", "user_name")
+            self.chat_window.insert(tk.END, f"{input_text}\n")
         if response != "":
-            self.chat_window.insert(tk.END, f"Мита: {response}\n", "Gpt")
+            self.chat_window.insert(tk.END, "Мита: ", "gpt_name")
+            self.chat_window.insert(tk.END, f"{response}\n\n")
 
     def send_message(self, system_input=""):
         user_input = self.user_entry.get()
@@ -443,9 +457,6 @@ class ChatGUI:
             except Exception as e:
                 print(f"Ошибка при отправке сообщения на сервер: {e}")
 
-        # Генерация ответа модели для локального отображения (опционально)
-
-        self.update_debug_info()
 
     def clear_history(self):
         self.model.clear_history()
