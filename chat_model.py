@@ -56,6 +56,7 @@ class ChatModel:
         self.boredom = 10
         self.stress = 5
 
+        self.distance = 0.0
         self.secretExposed = False
         self.secretExposedFirst = False
         # Загрузка данных из файлов
@@ -278,7 +279,7 @@ class ChatModel:
     def _process_user_input(self, user_input, system_input, messages):
         """Обработка пользовательского ввода и добавление сообщений"""
         date_now = datetime.datetime.now()
-        messages.append({"role": "system", "content": f"Текущее время: {date_now}."})
+        messages.append({"role": "system", "content": f"Текущее время: {date_now}. Расстояние до игрока {self.distance}"})
 
         if system_input != "":
             messages.append({"role": "system", "content": system_input})
@@ -362,7 +363,7 @@ class ChatModel:
             print(f"Ошибка в обработке ответа: {e}")
             return response  # Возвращаем оригинальный ответ в случае ошибки
 
-    def     extract_and_process_memory_data(self, response):
+    def extract_and_process_memory_data(self, response):
         """
         Извлекает данные из ответа, содержащего теги <+h>...</+h> или <#h>...</#h>,
         и добавляет или переписывает их в память Миты.
@@ -510,7 +511,6 @@ class ChatModel:
                     self.MitaExamples = currentInfo.get('MitaExamples', [])
                     self.systemMessages = currentInfo.get('MitaSystemMessages', [])
                     self.MitaLongMemory = currentInfo.get('MitaLongMemory', {})
-
 
                     return data
                 else:

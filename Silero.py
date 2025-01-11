@@ -5,14 +5,23 @@ import random
 import pygame
 import asyncio
 from telethon.tl.types import MessageMediaDocument
+from pydub import AudioSegment
+
+import audioread
+import soundfile as sf
+import ffmpeg
+
 
 # Пример использования:
 class TelegramBotHandler:
-    def __init__(self,message_limit_per_minute=3):
+    def __init__(self, gui, message_limit_per_minute=3):
         api_id = int(os.getenv("TELEGRAM_API_ID"))
         api_hash = os.getenv("TELEGRAM_API_HASH")
         phone = os.getenv("TELEGRAM_PHONE")
         silero_bot = '@silero_voice_bot'  # Юзернейм Silero бота
+
+        self.gui = gui
+        self.patch_to_sound_file = ""
 
         self.api_id = api_id
         self.api_hash = api_hash
@@ -23,7 +32,26 @@ class TelegramBotHandler:
         self.start_time = time.time()
         self.client = TelegramClient('session_name', self.api_id, self.api_hash)
 
+        # Сделаем метод экземплярным и добавим await
 
+    async def convert_mp3_to_wav(self, input_path, output_path):
+        """Конвертирует MP3 в WAV с использованием ffmpeg."""
+        try:
+            if not os.path.exists(input_path):
+                print(f"Файл {input_path} не найден.")
+                return
+
+            # Указываем путь к ffmpeg
+            ffmpeg_path = r"E:\Games\OpenAI_API_TEST\ffmpeg-7.1-essentials_build\bin\ffmpeg.exe"
+
+            print(f"Начинаю конвертацию {input_path} в {output_path} с помощью {ffmpeg_path}")
+
+            # Выполняем команду конвертации
+            ffmpeg.input(input_path).output(output_path).run(cmd=ffmpeg_path)
+
+            print(f"Конвертация завершена: {output_path}")
+        except Exception as e:
+            print(f"Ошибка при конвертации: {e}")
 
     def reset_message_count(self):
         """Сбрасывает счетчик сообщений каждую минуту."""
@@ -52,12 +80,11 @@ class TelegramBotHandler:
         except Exception as e:
             print(f"Ошибка при воспроизведении файла: {e}")
 
-    async def send_and_receive(self,input_message):
+    async def send_and_receive(self, input_message):
         """Отправляет сообщение боту и обрабатывает ответ."""
         bot_entity = await self.client.get_entity(self.silero_bot)  # Получаем объект бота
         bot_id = bot_entity.id  # ID бота
         global message_count
-
 
         self.reset_message_count()
 
@@ -97,8 +124,20 @@ class TelegramBotHandler:
         if response.media and isinstance(response.media, MessageMediaDocument):
             if 'audio/mpeg' in response.media.document.mime_type:  # Проверка MP3 файла
                 file_path = await self.client.download_media(response.media)
+
                 print(f"Файл загружен: {file_path}")
-                await self.handle_voice_file(file_path)
+                # Генерируем путь для WAV-файла на основе имени исходного MP3
+                base_name = os.path.splitext(os.path.basename(file_path))[0]  # Получаем имя файла без расширения
+                wav_path = os.path.join(os.path.dirname(file_path), f"{base_name}.wav")  # Создаем новый путь
+
+                # Получаем абсолютный путь
+                absolute_wav_path = os.path.abspath(wav_path)
+                # Конвертируем MP3 в WAV
+                await self.convert_mp3_to_wav(file_path, absolute_wav_path)
+                self.gui.patch_to_sound_file = absolute_wav_path
+
+                print(f"Файл wav загружен: {absolute_wav_path}")
+                #await self.handle_voice_file(file_path)
         elif response.text:  # Если сообщение текстовое
             print(f"Ответ от бота: {response.text}")
 
@@ -110,8 +149,3 @@ class TelegramBotHandler:
             print("Успешно авторизован!")
         except Exception as e:
             print(f"Ошибка авторизации: {e}")
-
-
-
-
-

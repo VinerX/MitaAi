@@ -27,7 +27,8 @@ class ChatGUI:
         self.running = False
         self.start_server()
         self.textToTalk = ""
-
+        self.patch_to_sound_file = ""
+        self.ConnectedToGame = True
         self.root = tk.Tk()
         self.root.title("Чат с MitaAI")
         self.api_key = "sk-PkNRM8HNkAeVadcJEwKVW6c8OTtafs6f"
@@ -71,7 +72,7 @@ class ChatGUI:
         """Асинхронный запуск обработчика Telegram Bot."""
         print("Telegram Bot запускается!")
         try:
-            self.bot_handler = TelegramBotHandler()
+            self.bot_handler = TelegramBotHandler(self)
             await self.bot_handler.start()
             self.bot_handler_ready = True
             print("Telegram Bot запущен!")
@@ -98,7 +99,7 @@ class ChatGUI:
     def check_text_to_talk(self):
         """Периодическая проверка переменной self.textToTalk."""
 
-        if self.textToTalk != "":
+        if self.textToTalk != "": #and not self.ConnectedToGame:
             print(f"Есть текст для отправки: {self.textToTalk}")
             # Вызываем метод для отправки текста, если переменная не пуста
             if self.loop and self.loop.is_running():
@@ -108,6 +109,7 @@ class ChatGUI:
                 print("Выполнено")
             else:
                 print("Ошибка: Цикл событий не готов.")
+        #if self.patch_to_sound_file !="":
 
         # Перезапуск проверки через 100 миллисекунд
         self.root.after(500, self.check_text_to_talk)  # Это обеспечит постоянную проверку

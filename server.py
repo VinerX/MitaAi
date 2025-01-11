@@ -34,8 +34,10 @@ class ChatServer:
             #print(f"Подключен {addr}")
 
             # Получение сообщения от клиента
-            message = self.client_socket.recv(1024).decode('utf-8')
-            #print(f"Получено сообщение: {message}")
+            received_text = self.client_socket.recv(1024).decode('utf-8')
+
+            # Разделяем текст и ссылку по "|||"
+            message, self.chat_model.distance = received_text.split("|||")
 
             response = ""
             if message == "":
@@ -54,8 +56,15 @@ class ChatServer:
                 #self.gui.insertDialog(message,response)
                 print("Отправлено Мите на озвучку: " + response)
 
+
             # Отправка ответа обратно клиенту
-            self.client_socket.send(response.encode('utf-8'))
+            # Формируем сообщение через f-string с разделителем |||
+            #print(f"Попытка отправить путь к файлу{self.gui.patch_to_sound_file}")
+            message = f"{response}|||{self.gui.patch_to_sound_file}"
+
+
+            # Отправляем сообщение через сокет
+            self.client_socket.send(message.encode('utf-8'))
 
             return True
         except Exception as e:
