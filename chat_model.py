@@ -46,7 +46,7 @@ class ChatModel:
             self.hasTokenizer = False
 
         self.max_input_tokens = 2048
-        self.max_response_tokens = 3250
+        self.max_response_tokens = 4000
         self.cost_input_per_1000 = 0.0432
         self.cost_response_per_1000 = 0.1728
         self.history_file = "chat_history.json"
@@ -63,7 +63,7 @@ class ChatModel:
 
         self.load_prompts()
 
-        self.MitaLongMemory = {"role": "system", "content": f" ДолгаяПамять<>КонецДолгойПамяти "}
+        self.MitaLongMemory = {"role": "system", "content": f" ДолгаяПамять<  >КонецДолгойПамяти "}
         self.MitaMainBehaviour = []
         self.MitaExamples = []
         self.systemMessages = []
@@ -206,6 +206,10 @@ class ChatModel:
             # Процессинг ответа: изменяем показатели и сохраняем историю
             response = self.process_response(user_input, response, messages)
 
+            current_info.update({
+                'MitaLongMemory': self.MitaLongMemory
+            })
+
             response_message = {
                 "role": "assistant",
                 "content": response
@@ -302,10 +306,13 @@ class ChatModel:
             combined_messages.append(self.MitaMainBehaviour)
             print("MitaMainBehaviour успешно добавлен.")
 
-        # Добавляем MitaLongMemory, если это словарь
-        if isinstance(self.MitaLongMemory, dict):
+        # Добавляем MitaLongMemory, если это словарь и ключ "Role" существует и его значение не пустое
+        if isinstance(self.MitaLongMemory, dict) and self.MitaLongMemory.get("Role") not in [None, ""]:
             combined_messages.append(self.MitaLongMemory)
+            print(self.MitaLongMemory)
             print("MitaLongMemory успешно добавлен.")
+        else:
+            print("MitaLongMemory не добавлен. Условие не выполнено.")
 
         # Добавляем timed_system_message, если это словарь
         if isinstance(timed_system_message, dict):
@@ -355,7 +362,7 @@ class ChatModel:
             print(f"Ошибка в обработке ответа: {e}")
             return response  # Возвращаем оригинальный ответ в случае ошибки
 
-    def extract_and_process_memory_data(self, response):
+    def     extract_and_process_memory_data(self, response):
         """
         Извлекает данные из ответа, содержащего теги <+h>...</+h> или <#h>...</#h>,
         и добавляет или переписывает их в память Миты.
@@ -363,6 +370,8 @@ class ChatModel:
         :param response: Ответ, который нужно обработать.
         :return: Обработанный ответ.
         """
+        if self.MitaLongMemory == {}:
+            self.MitaLongMemory = {"role": "system", "content": f" ДолгаяПамять<  >КонецДолгойПамяти "}
         # Регулярное выражение для поиска тегов <+h>...</+h> или <#h>...</#h>
         memory_pattern = r"<([+#]h)>(.*?)<\/h>"
 
@@ -370,18 +379,19 @@ class ChatModel:
         matches = re.findall(memory_pattern, response)
 
         if matches:
+            print("ПОПЫТКА ИЗМЕНЕНИЯ ПАМЯТИ!!!!!!!")
             for tag_type, content in matches:
                 if tag_type == "+h":
                     print("Добавление воспоминания.")
                     # Добавление нового воспоминания
                     self.MitaLongMemory["content"] = self.MitaLongMemory["content"].replace(
-                        "КонецДолгойПамяти",
-                        f"{content}КонецДолгойПамяти"
+                        " >КонецДолгойПамяти",
+                        f" | {content} >КонецДолгойПамяти"
                     )
                 elif tag_type == "#h":
                     print("Переписывание воспоминания.")
                     # Переписывание всего воспоминания
-                    self.MitaLongMemory["content"] = f" ДолгаяПамять<{content}>КонецДолгойПамяти "
+                    self.MitaLongMemory["content"] = f" ДолгаяПамять< {content} >КонецДолгойПамяти "
 
             # Убираем все теги из ответа
             response = re.sub(memory_pattern, "", response)
@@ -562,6 +572,7 @@ class ChatModel:
         self.secretExposedFirst = False
         # Сохраняем пустую историю
         self.save_history(self._default_history())
+        self.MitaLongMemory = {"role": "system", "content": f" ДолгаяПамять<  >КонецДолгойПамяти "}
 
     def _default_history(self):
         print("ИСТОРИЧЕСКИЙ ДЕФОЛТ!!!")
