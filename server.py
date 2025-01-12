@@ -61,7 +61,7 @@ class ChatServer:
             # Формируем сообщение через f-string с разделителем |||
             #print(f"Попытка отправить путь к файлу{self.gui.patch_to_sound_file}")
             message = f"{response}|||{self.gui.patch_to_sound_file}"
-
+            self.gui.patch_to_sound_file = ""
 
             # Отправляем сообщение через сокет
             self.client_socket.send(message.encode('utf-8'))

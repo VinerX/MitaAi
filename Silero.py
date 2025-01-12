@@ -34,6 +34,9 @@ class TelegramBotHandler:
 
         # Сделаем метод экземплярным и добавим await
 
+    import ffmpeg
+    import os
+
     async def convert_mp3_to_wav(self, input_path, output_path):
         """Конвертирует MP3 в WAV с использованием ffmpeg."""
         try:
@@ -46,8 +49,19 @@ class TelegramBotHandler:
 
             print(f"Начинаю конвертацию {input_path} в {output_path} с помощью {ffmpeg_path}")
 
-            # Выполняем команду конвертации
-            ffmpeg.input(input_path).output(output_path).run(cmd=ffmpeg_path)
+            # Выполняем команду конвертации с нужными параметрами
+            (
+                ffmpeg
+                .input(input_path)
+                .output(
+                    output_path,
+                    format="wav",  # Указываем формат WAV
+                    acodec="pcm_s16le",  # 16-битный PCM
+                    ar="44100",  # Частота дискретизации 44100 Hz
+                    ac=2  # Количество каналов (2 = стерео, 1 = моно)
+                )
+                .run(cmd=ffmpeg_path)
+            )
 
             print(f"Конвертация завершена: {output_path}")
         except Exception as e:
@@ -83,7 +97,6 @@ class TelegramBotHandler:
     async def send_and_receive(self, input_message):
         """Отправляет сообщение боту и обрабатывает ответ."""
         bot_entity = await self.client.get_entity(self.silero_bot)  # Получаем объект бота
-        bot_id = bot_entity.id  # ID бота
         global message_count
 
         self.reset_message_count()
@@ -126,18 +139,21 @@ class TelegramBotHandler:
                 file_path = await self.client.download_media(response.media)
 
                 print(f"Файл загружен: {file_path}")
-                # Генерируем путь для WAV-файла на основе имени исходного MP3
-                base_name = os.path.splitext(os.path.basename(file_path))[0]  # Получаем имя файла без расширения
-                wav_path = os.path.join(os.path.dirname(file_path), f"{base_name}.wav")  # Создаем новый путь
+                if self.gui.ConnectedToGame:
+                    # Генерируем путь для WAV-файла на основе имени исходного MP3
+                    base_name = os.path.splitext(os.path.basename(file_path))[0]  # Получаем имя файла без расширения
+                    wav_path = os.path.join(os.path.dirname(file_path), f"{base_name}.wav")  # Создаем новый путь
 
-                # Получаем абсолютный путь
-                absolute_wav_path = os.path.abspath(wav_path)
-                # Конвертируем MP3 в WAV
-                await self.convert_mp3_to_wav(file_path, absolute_wav_path)
-                self.gui.patch_to_sound_file = absolute_wav_path
+                    # Получаем абсолютный путь
+                    absolute_wav_path = os.path.abspath(wav_path)
+                    # Конвертируем MP3 в WAV
+                    await self.convert_mp3_to_wav(file_path, absolute_wav_path)
+                    self.gui.patch_to_sound_file = absolute_wav_path
 
-                print(f"Файл wav загружен: {absolute_wav_path}")
-                #await self.handle_voice_file(file_path)
+                    print(f"Файл wav загружен: {absolute_wav_path}")
+                else:
+                    print(f"Отправлен воспроизводится: {file_path}")
+                    await self.handle_voice_file(file_path)
         elif response.text:  # Если сообщение текстовое
             print(f"Ответ от бота: {response.text}")
 
