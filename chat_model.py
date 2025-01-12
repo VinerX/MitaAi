@@ -414,7 +414,8 @@ class ChatModel:
 
     def process_text_to_voice(self, text):
         # Регулярное выражение для удаления всех тегов между угловыми скобками
-        clean_text = re.sub(r"<.*?>", "", text)
+        clean_text = re.sub(r"<.*?>.*?<.*?>", "", text)
+        clean_text = re.sub(r"<.*?>", "", clean_text)
         return clean_text
     def extract_and_process_memory_data(self, response):
         """
