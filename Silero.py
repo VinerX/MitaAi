@@ -96,7 +96,6 @@ class TelegramBotHandler:
 
     async def send_and_receive(self, input_message):
         """Отправляет сообщение боту и обрабатывает ответ."""
-        bot_entity = await self.client.get_entity(self.silero_bot)  # Получаем объект бота
         global message_count
 
         self.reset_message_count()
@@ -115,7 +114,7 @@ class TelegramBotHandler:
         response = None
         attempts = 0
         await asyncio.sleep(0.7)
-        while attempts < 3:  # Попытки получения ответа
+        while attempts < 6:  # Попытки получения ответа
 
             async for message in self.client.iter_messages(self.silero_bot, limit=1):
                 if message.media and isinstance(message.media, MessageMediaDocument):
@@ -127,7 +126,7 @@ class TelegramBotHandler:
                 break
             print(f"Попытка {attempts + 1}/3. Ответ от бота не найден.")
             attempts += 1
-            await asyncio.sleep(1)  # Немного подождем
+            await asyncio.sleep(0.5)  # Немного подождем
 
         if not response:
             print("Ответ от бота не получен после 3 попыток.")
