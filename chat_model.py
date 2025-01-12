@@ -218,7 +218,7 @@ class ChatModel:
             messages.append(response_message)
 
             print("До фразы")
-            self.gui.textToTalk = response
+            self.gui.textToTalk = self.process_text_to_voice(response)
 
             #self.update_memory_in_history()
             self.save_history({
@@ -278,8 +278,12 @@ class ChatModel:
 
     def _process_user_input(self, user_input, system_input, messages):
         """Обработка пользовательского ввода и добавление сообщений"""
-        date_now = datetime.datetime.now()
-        messages.append({"role": "system", "content": f"Текущее время: {date_now}. Расстояние до игрока {self.distance}"})
+        date_now = datetime.datetime.now().replace(microsecond=0)
+        if self.distance != 0:
+            messages.append({"role": "system", "content": f"Текущее время: {date_now}. Расстояние до игрока {self.distance}"})
+        else:
+            messages.append(
+                {"role": "system", "content": f"Текущее время: {date_now}. Расстояние до игрока ?"})
 
         if system_input != "":
             messages.append({"role": "system", "content": system_input})
@@ -362,7 +366,56 @@ class ChatModel:
         except Exception as e:
             print(f"Ошибка в обработке ответа: {e}")
             return response  # Возвращаем оригинальный ответ в случае ошибки
+    def process_commands(self, response, messages):
+        """
+        Обрабатывает команды типа <c>...</c> в ответе.
+        Команды могут быть: "Достать бензопилу", "Выключить игрока" и другие.
+        """
+        start_tag = "<c>"
+        end_tag = "</c>"
+        search_start = 0  # Указатель для поиска новых команд
 
+        while start_tag in response[search_start:] and end_tag in response[search_start:]:
+            try:
+                # Находим команду
+                start_index = response.index(start_tag, search_start) + len(start_tag)
+                end_index = response.index(end_tag, start_index)
+                command = response[start_index:end_index]
+
+                # Логируем текущую команду
+                print(f"Обработка команды: {command}")
+
+                # Обработка команды
+                if command == "Достать бензопилу":
+                    add_temporary_system_message(messages, "Игрок был распилен, но скоро он вернется...")
+
+                    if self.gui:
+                        self.gui.close_app()
+
+                elif command == "Выключить игрока":
+                    add_temporary_system_message(messages, "Игрок был выключен, но скоро он вернется...")
+
+                    if self.gui:
+                        self.gui.close_app()
+
+                else:
+                    # Обработка неизвестных команд
+                    add_temporary_system_message(messages, f"Неизвестная команда: {command}")
+                    print(f"Неизвестная команда: {command}")
+
+                # Сдвигаем указатель поиска на следующий символ после текущей команды
+                search_start = end_index + len(end_tag)
+
+            except ValueError as e:
+                add_temporary_system_message(messages, f"Ошибка обработки команды: {e}")
+                break
+
+        return response
+
+    def process_text_to_voice(self, text):
+        # Регулярное выражение для удаления всех тегов между угловыми скобками
+        clean_text = re.sub(r"<.*?>", "", text)
+        return clean_text
     def extract_and_process_memory_data(self, response):
         """
         Извлекает данные из ответа, содержащего теги <+h>...</+h> или <#h>...</#h>,

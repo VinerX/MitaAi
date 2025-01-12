@@ -23,6 +23,7 @@ class ChatServer:
         self.passive_server_socket.bind((self.host, self.passive_port))
         self.passive_server_socket.listen(5)
         print(f"Сервер запущен на {self.host}:{self.passive_port}")
+        self.gui.ConnectedToGame = True
 
     def handle_connection(self):
         """Обрабатывает одно подключение."""
@@ -46,8 +47,8 @@ class ChatServer:
                 if len(self.MessagesToSay)>0:
                     response = self.MessagesToSay.pop(0)
             elif message == "boring":
-                date_now = datetime.datetime.now()
-                response = self.generate_response("",f"Время{date_now}, Игрок долго молчит( Ты можешь что-то сказать или предпринять")
+                date_now = datetime.datetime.now().replace(microsecond=0)
+                response = self.generate_response("",f"Время {date_now}, Игрок долго молчит( Ты можешь что-то сказать или предпринять")
                 self.gui.insertDialog("",response)
                 print("Отправлено Мите на озвучку: " + response)
             else:
@@ -65,10 +66,11 @@ class ChatServer:
 
             # Отправляем сообщение через сокет
             self.client_socket.send(message.encode('utf-8'))
-
+            self.gui.ConnectedToGame = True
             return True
         except Exception as e:
             print(f"Ошибка обработки подключения: {e}")
+            self.gui.ConnectedToGame = False
         finally:
             if self.client_socket:
                 self.client_socket.close()
@@ -93,3 +95,4 @@ class ChatServer:
         if self.server_socket:
             self.server_socket.close()
             print("Сервер остановлен.")
+            self.gui.ConnectedToGame = False

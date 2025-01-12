@@ -82,6 +82,8 @@ class TelegramBotHandler:
             pygame.mixer.music.play()
             while pygame.mixer.music.get_busy():  # Ожидаем завершения воспроизведения
                 pygame.time.Clock().tick(10)
+            pygame.mixer.music.stop()  # Останавливаем воспроизведение
+            pygame.mixer.quit()  # Закрываем микшер, чтобы освободить ресурсы
 
         # Выполняем блокирующую функцию в отдельном потоке
         await asyncio.to_thread(play)
@@ -91,6 +93,13 @@ class TelegramBotHandler:
         try:
             print(f"Проигрываю файл: {file_path}")
             await self.play_mp3(file_path)
+            if os.path.exists(file_path):
+                try:
+                    await asyncio.sleep(0.02)
+                    os.remove(file_path)
+                    print(f"Файл {file_path} удалён.")
+                except Exception as e:
+                    print(f"Файл {file_path} НЕ удалён. Ошибка: {e}")
         except Exception as e:
             print(f"Ошибка при воспроизведении файла: {e}")
 
@@ -138,20 +147,29 @@ class TelegramBotHandler:
                 file_path = await self.client.download_media(response.media)
 
                 print(f"Файл загружен: {file_path}")
+                absolute_mp3_path = os.path.abspath(file_path)
                 if self.gui.ConnectedToGame:
                     # Генерируем путь для WAV-файла на основе имени исходного MP3
                     base_name = os.path.splitext(os.path.basename(file_path))[0]  # Получаем имя файла без расширения
                     wav_path = os.path.join(os.path.dirname(file_path), f"{base_name}.wav")  # Создаем новый путь
 
                     # Получаем абсолютный путь
+
                     absolute_wav_path = os.path.abspath(wav_path)
                     # Конвертируем MP3 в WAV
                     await self.convert_mp3_to_wav(file_path, absolute_wav_path)
-                    self.gui.patch_to_sound_file = absolute_wav_path
 
+                    try:
+                        print(f"Удаляю файл: {absolute_mp3_path}")
+                        os.remove(absolute_mp3_path)
+                        print(f"Файл {absolute_mp3_path} удалён.")
+                    except OSError as remove_error:
+                        print(f"Ошибка при удалении файла {absolute_mp3_path}: {remove_error}")
+
+                    self.gui.patch_to_sound_file = absolute_wav_path
                     print(f"Файл wav загружен: {absolute_wav_path}")
                 else:
-                    print(f"Отправлен воспроизводится: {file_path}")
+                    print(f"Отправлен воспроизводится: {absolute_mp3_path}")
                     await self.handle_voice_file(file_path)
         elif response.text:  # Если сообщение текстовое
             print(f"Ответ от бота: {response.text}")

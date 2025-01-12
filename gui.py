@@ -5,7 +5,6 @@ import threading
 from Silero import TelegramBotHandler
 import asyncio
 
-
 import threading
 
 import asyncio
@@ -16,6 +15,7 @@ import time
 import asyncio
 import threading
 import tkinter as tk
+
 
 class ChatGUI:
     def __init__(self):
@@ -28,7 +28,7 @@ class ChatGUI:
         self.start_server()
         self.textToTalk = ""
         self.patch_to_sound_file = ""
-        self.ConnectedToGame = True
+        self.ConnectedToGame = False
         self.root = tk.Tk()
         self.root.title("Чат с MitaAI")
         self.api_key = "sk-PkNRM8HNkAeVadcJEwKVW6c8OTtafs6f"
@@ -99,7 +99,7 @@ class ChatGUI:
     def check_text_to_talk(self):
         """Периодическая проверка переменной self.textToTalk."""
 
-        if self.textToTalk != "": #and not self.ConnectedToGame:
+        if self.textToTalk != "":  #and not self.ConnectedToGame:
             print(f"Есть текст для отправки: {self.textToTalk}")
             # Вызываем метод для отправки текста, если переменная не пуста
             if self.loop and self.loop.is_running():
@@ -112,7 +112,7 @@ class ChatGUI:
         #if self.patch_to_sound_file !="":
 
         # Перезапуск проверки через 100 миллисекунд
-        self.root.after(500, self.check_text_to_talk)  # Это обеспечит постоянную проверку
+        self.root.after(100, self.check_text_to_talk)  # Это обеспечит постоянную проверку
 
     def start_server(self):
         """Запускает сервер в отдельном потоке."""
@@ -188,11 +188,16 @@ class ChatGUI:
         self.setup_api_controls()
 
         self.load_chat_history()
+
     def insert_message(self, role, content):
         if role == "user":
-            self.chat_window.insert(tk.END, f"Вы: {content}\n", "user")
+            # Вставляем имя пользователя с зеленым цветом, а текст — обычным
+            self.chat_window.insert(tk.END, "Вы: ", "user_name")
+            self.chat_window.insert(tk.END, f"{content}\n")
         elif role == "assistant":
-            self.chat_window.insert(tk.END, f"Мита: {content}\n\n", "gpt")
+            # Вставляем имя Миты с синим цветом, а текст — обычным
+            self.chat_window.insert(tk.END, "Мита: ", "gpt_name")
+            self.chat_window.insert(tk.END, f"{content}\n\n")
 
     def setup_attitude_controls(self):
         attitude_frame = tk.Frame(self.root, bg="#2c2c2c")
@@ -296,14 +301,7 @@ class ChatGUI:
         for entry in self.model.chat_history:
             role = entry["role"]
             content = entry["content"]
-            if role == "user":
-                # Вставляем имя пользователя с зеленым цветом, а текст — обычным
-                self.chat_window.insert(tk.END, "Вы: ", "user_name")
-                self.chat_window.insert(tk.END, f"{content}\n")
-            elif role == "assistant":
-                # Вставляем имя Миты с синим цветом, а текст — обычным
-                self.chat_window.insert(tk.END, "Мита: ", "gpt_name")
-                self.chat_window.insert(tk.END, f"{content}\n\n")
+            self.insert_message(role, content)
         self.update_debug_info()
 
     def setup_debug_controls(self):
@@ -441,11 +439,12 @@ class ChatGUI:
             return
 
         if user_input != "":
-            self.chat_window.insert(tk.END, f"Вы: {user_input}\n", "user")
+            self.insert_message("user",user_input)
             self.user_entry.delete(0, tk.END)
 
         response = self.model.generate_response(user_input, system_input)
-        self.chat_window.insert(tk.END, f"Мита: {response}\n\n", "gpt")
+        self.insert_message("assistant", response)
+        self.user_entry.delete(0, tk.END)
         self.update_debug_info()
         # Отправка сообщения на сервер
         if self.server:
@@ -459,7 +458,6 @@ class ChatGUI:
             except Exception as e:
                 print(f"Ошибка при отправке сообщения на сервер: {e}")
 
-
     def clear_history(self):
         self.model.clear_history()
         self.chat_window.delete(1.0, tk.END)
@@ -467,7 +465,6 @@ class ChatGUI:
 
     def run(self):
         self.root.mainloop()
-
 
     def on_closing(self):
         self.stop_server()
