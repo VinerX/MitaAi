@@ -71,6 +71,8 @@ class ChatModel:
         self.HideAiData = True
         #print_ip_and_country()
 
+        self.repeatResponse = False
+
     def load_prompts(self):
         self.common = self.load_text_from_file("Promts/Main/common.txt")
         self.main = self.load_text_from_file("Promts/Main/main.txt")
@@ -159,6 +161,7 @@ class ChatModel:
             self.client = OpenAI(api_key=self.api_key)
 
     def generate_response(self, user_input, system_input=""):
+        self.repeatResponse = False
         # Загрузка истории из файла
         history_data = self.load_history()
 
@@ -279,8 +282,11 @@ class ChatModel:
     def _process_user_input(self, user_input, system_input, messages):
         """Обработка пользовательского ввода и добавление сообщений"""
         date_now = datetime.datetime.now().replace(microsecond=0)
+
         if self.distance != 0:
-            messages.append({"role": "system", "content": f"Текущее время: {date_now}. Расстояние до игрока {self.distance}"})
+            messages.append(
+                {"role": "system",
+                 "content": f"Текущее время: {date_now}. Расстояние до игрока {self.distance}. Тебе следует подойти, оно больше 10"})
         else:
             messages.append(
                 {"role": "system", "content": f"Текущее время: {date_now}. Расстояние до игрока ?"})
@@ -366,6 +372,7 @@ class ChatModel:
         except Exception as e:
             print(f"Ошибка в обработке ответа: {e}")
             return response  # Возвращаем оригинальный ответ в случае ошибки
+
     def process_commands(self, response, messages):
         """
         Обрабатывает команды типа <c>...</c> в ответе.
@@ -417,6 +424,7 @@ class ChatModel:
         clean_text = re.sub(r"<.*?>.*?<.*?>", "", text)
         clean_text = re.sub(r"<.*?>", "", clean_text)
         return clean_text
+
     def extract_and_process_memory_data(self, response):
         """
         Извлекает данные из ответа, содержащего теги <+h>...</+h> или <#h>...</#h>,
@@ -526,7 +534,8 @@ class ChatModel:
 
                     if self.gui:
                         self.gui.close_app()
-
+                elif command == "Продолжить фразу":
+                    self.repeatResponse = True
                 else:
                     # Обработка неизвестных команд
                     add_temporary_system_message(messages, f"Неизвестная команда: {command}")
@@ -536,7 +545,7 @@ class ChatModel:
                 search_start = end_index + len(end_tag)
 
             except ValueError as e:
-                add_temporary_system_message(messages, f"Ошибка обработки команды: {e}")
+                print(f"Ошибка обработки команды: {e}")
                 break
 
         return response

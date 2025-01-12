@@ -443,6 +443,10 @@ class ChatGUI:
             self.user_entry.delete(0, tk.END)
 
         response = self.model.generate_response(user_input, system_input)
+        counter = 0
+        #while self.model.repeatResponse and counter<3:
+         #   response += self.model.generate_response("", "")
+          #  counter+=1
         self.insert_message("assistant", response)
         self.user_entry.delete(0, tk.END)
         self.update_debug_info()

@@ -80,6 +80,11 @@ class ChatServer:
         """Генерирует текст с помощью модели."""
         try:
             response = self.chat_model.generate_response(input_text,system_input_text)
+            counter = 0
+            #while self.chat_model.repeatResponse and counter<3:
+             #   response += self.chat_model.generate_response("", "")
+               # counter+=1
+
             if input_text!="":
                 self.gui.insertDialog(input_text,response)
         except Exception as e:
