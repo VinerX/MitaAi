@@ -57,6 +57,10 @@ class ChatModel:
         self.stress = 5
 
         self.distance = 0.0
+        self.roomPlayer = -1
+        self.roomMita = -1
+
+
         self.secretExposed = False
         self.secretExposedFirst = False
         # Загрузка данных из файлов
@@ -283,13 +287,17 @@ class ChatModel:
         """Обработка пользовательского ввода и добавление сообщений"""
         date_now = datetime.datetime.now().replace(microsecond=0)
 
-        if self.distance != 0:
-            messages.append(
-                {"role": "system",
-                 "content": f"Текущее время: {date_now}. Расстояние до игрока {self.distance}. Тебе следует подойти, оно больше 10"})
-        else:
-            messages.append(
-                {"role": "system", "content": f"Текущее время: {date_now}. Расстояние до игрока ?"})
+
+        distance_message = f"Текущее время: {date_now}. Расстояние до игрока {self.distance}. Тебе следует подойти, оно больше 10 "
+
+        if self.distance == 0:
+            distance_message = f"Текущее время: {date_now}. Расстояние до игрока ? "
+
+        # Проверяем правильность вызова get_room_name
+        distance_message += f"Ты находишься в {self.get_room_name( int(self.roomMita))}, игрок в {self.get_room_name(int(self.roomPlayer))}."
+
+        messages.append({"role": "system", "content": distance_message})
+
 
         if system_input != "":
             messages.append({"role": "system", "content": system_input})
@@ -297,6 +305,18 @@ class ChatModel:
             messages.append({"role": "user", "content": user_input})
 
         return messages
+
+    def get_room_name(self,room_id):
+        # Сопоставление ID комнаты с её названием
+        room_names = {
+            0: "Кухня",  # Кухня
+            1: "Зал",  # Главная комната
+            2: "Комната",  # Спальня
+            3: "Туалет"  # Туалет
+        }
+
+        # Возвращаем название комнаты, если оно есть, иначе возвращаем сообщение о неизвестной комнате
+        return room_names.get(room_id, "?")
 
     def _combine_messages(self, messages, timed_system_message):
         """Комбинирование всех сообщений перед отправкой"""
