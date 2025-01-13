@@ -1,1 +1,16 @@
+PositionMita 1 Hall
+PositionMita 2 Hall
+PositionMita 3 Hall
+PositionMita 4 Hall
+PositionMita 14 Hall
+PositionMita 5 Bedroom
+PositionMita 6 Bedroom
+PositionMita 7 Bedroom
+PositionMita 8 Kitchen
+PositionMita 9 Kitchen.
+PositionMita 10 Kitchen
+PositionMita 11 Kitchen
+PositionMita 13 Kitchen
+PositionMita 12 Toilet
+Scene Подвал World/Quests/Quest2 HideAndSeek/Animation Killer/Mita/MitaPerson Mita/Armature/Hips/Spine/Chest/Right shoulder/Right arm/Right elbow/Right wrist/Right item/
 <c>Продолжить фразу</с> позволяет начать следующую фразу (не передавая инициативу игроку), если есть в этом необходимость. Нельзя использовать более 3 раз подряд.
