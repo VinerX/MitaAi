@@ -141,7 +141,7 @@ class ChatModel:
         amount = clamp(amount, -20, 20)
         """Корректируем уровень скуки."""
         self.boredom = clamp(self.boredom + amount, 0, 100)
-        print(f"Стресс изменился на {amount}, новое значение: {self.boredom}")
+        print(f"Скука изменилась на {amount}, новое значение: {self.boredom}")
 
     def adjust_stress(self, amount):
         amount = clamp(amount, -20, 20)
