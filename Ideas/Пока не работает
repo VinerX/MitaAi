@@ -7,7 +7,7 @@ PositionMita 5 Bedroom
 PositionMita 6 Bedroom
 PositionMita 7 Bedroom
 PositionMita 8 Kitchen
-PositionMita 9 Kitchen.
+PositionMita 9 Kitchen
 PositionMita 10 Kitchen
 PositionMita 11 Kitchen
 PositionMita 13 Kitchen
@@ -27,3 +27,6 @@ World/House/HouseGameNormal Tamagotchi/HouseGame Tamagotchi/House/Bedroom/Bedroo
 Dont    GameController/Player/FixHead/MainCamera/
 
 6 World/House/HouseGameNormal Tamagotchi/HouseGame Tamagotchi/House/Basement/
+
+World/Act/ContinueScene ТриггерТут подвала
+World/Quests/Quest2 HideAndSeek/Animation Killer

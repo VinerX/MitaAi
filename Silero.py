@@ -6,7 +6,7 @@ import pygame
 import asyncio
 from telethon.tl.types import MessageMediaDocument
 from pydub import AudioSegment
-
+from RVC import BnmRvcModel
 import audioread
 import soundfile as sf
 import ffmpeg
@@ -21,6 +21,7 @@ class TelegramBotHandler:
         silero_bot = '@silero_voice_bot'  # Юзернейм Silero бота
 
         self.gui = gui
+        #self.BnmRvcModel = BnmRvcModel()
         self.patch_to_sound_file = ""
 
         self.api_id = api_id
@@ -166,8 +167,13 @@ class TelegramBotHandler:
                     except OSError as remove_error:
                         print(f"Ошибка при удалении файла {absolute_mp3_path}: {remove_error}")
 
+                    #.BnmRvcModel.process(absolute_wav_path, absolute_wav_path+"_RVC_.wav")
+
                     self.gui.patch_to_sound_file = absolute_wav_path
                     print(f"Файл wav загружен: {absolute_wav_path}")
+
+
+
                 else:
                     print(f"Отправлен воспроизводится: {absolute_mp3_path}")
                     await self.handle_voice_file(file_path)
@@ -175,6 +181,7 @@ class TelegramBotHandler:
             print(f"Ответ от бота: {response.text}")
 
     async def start(self):
+
         print("Запуск коннектора ТГ!")
         try:
             await self.client.start(phone=self.phone)
