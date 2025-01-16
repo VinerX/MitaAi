@@ -38,7 +38,7 @@ class ChatServer:
             received_text = self.client_socket.recv(1024).decode('utf-8')
 
             # Разделяем текст и ссылку по "|||"
-            message, self.chat_model.distance, self.chat_model.roomPlayer, self.chat_model.roomMita = received_text.split("|||")
+            message, self.chat_model.distance, self.chat_model.roomPlayer, self.chat_model.roomMita,self.chat_model.nearObjects = received_text.split("|||")
 
             response = ""
             if message == "":

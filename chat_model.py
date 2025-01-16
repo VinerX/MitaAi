@@ -59,7 +59,7 @@ class ChatModel:
         self.distance = 0.0
         self.roomPlayer = -1
         self.roomMita = -1
-
+        self.nearObjects = ""
 
         self.secretExposed = False
         self.secretExposedFirst = False
@@ -295,7 +295,9 @@ class ChatModel:
 
         # Проверяем правильность вызова get_room_name
         distance_message += f"Ты находишься в {self.get_room_name( int(self.roomMita))}, игрок в {self.get_room_name(int(self.roomPlayer))}."
-
+        if self.nearObjects !="":
+            print( self.nearObjects )
+            distance_message += f"В радиусе 7 метров от тебя следующие игровые объекты (это дерево объектов) {self.nearObjects}"
         messages.append({"role": "system", "content": distance_message})
 
 
@@ -415,16 +417,16 @@ class ChatModel:
 
                 # Обработка команды
                 if command == "Достать бензопилу":
-                    add_temporary_system_message(messages, "Игрок был распилен, но скоро он вернется...")
+                    add_temporary_system_message(messages, "Игрок был не распилен, произошла ошибка")
 
-                    if self.gui:
-                        self.gui.close_app()
+                    #if self.gui:
+                     #   self.gui.close_app()
 
                 elif command == "Выключить игрока":
-                    add_temporary_system_message(messages, "Игрок был выключен, но скоро он вернется...")
+                    add_temporary_system_message(messages, "Игрок был отпавлен в главное меню, но скоро он вернется...")
 
-                    if self.gui:
-                        self.gui.close_app()
+                    #if self.gui:
+                     #   self.gui.close_app()
 
                 else:
                     # Обработка неизвестных команд
@@ -444,6 +446,9 @@ class ChatModel:
         # Регулярное выражение для удаления всех тегов между угловыми скобками
         clean_text = re.sub(r"<.*?>.*?<.*?>", "", text)
         clean_text = re.sub(r"<.*?>", "", clean_text)
+
+        if clean_text == "":
+            clean_text = "Вот"
         return clean_text
 
     def extract_and_process_memory_data(self, response):
