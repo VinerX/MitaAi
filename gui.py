@@ -19,6 +19,7 @@ import tkinter as tk
 
 class ChatGUI:
     def __init__(self):
+        self.token_count_label = None
         self.bot_handler = None
         self.bot_handler_ready = False
         self.model = ChatModel(self)
@@ -33,7 +34,10 @@ class ChatGUI:
         self.root.title("Чат с MitaAI")
         self.api_key = "sk-PkNRM8HNkAeVadcJEwKVW6c8OTtafs6f"
         self.api_url = "https://api.proxyapi.ru/openai/v1"
+        self.last_price = ""
+
         self.setup_ui()
+
 
         # Событие для синхронизации потоков
         self.loop_ready_event = threading.Event()
@@ -167,7 +171,7 @@ class ChatGUI:
         self.send_button.pack(side=tk.RIGHT, padx=5)
 
         self.token_count_label = tk.Label(
-            self.root, text=f"Токенов: 0/{self.model.max_input_tokens} | Ориент. стоимость: 0.0000 ₽",
+            self.root, text=f"Последнее сообщение: {self.last_price}",
             bg="#2c2c2c", fg="#ffffff", font=("Arial", 12)
         )
         self.token_count_label.pack(fill=tk.X, pady=5)
@@ -295,6 +299,18 @@ class ChatGUI:
         )
         clear_button.pack(side=tk.LEFT, padx=5)
 
+        save_history_button = tk.Button(
+            history_frame, text="Сохранить историю", command=self.model.save_chat_history(),
+            bg="#8a2be2", fg="#ffffff"
+        )
+        save_history_button.pack(side=tk.LEFT, padx=10)
+
+        reload_prompts_button = tk.Button(
+            history_frame, text="Перезагрузить промпты", command=self.model.reload_promts(),
+            bg="#8a2be2", fg="#ffffff"
+        )
+        reload_prompts_button.pack(side=tk.LEFT, padx=15)
+
     def load_chat_history(self):
         self.model.load_history()
         """Загрузить историю из модели и отобразить в интерфейсе."""
@@ -303,6 +319,7 @@ class ChatGUI:
             content = entry["content"]
             self.insert_message(role, content)
         self.update_debug_info()
+        self.token_count_label.text = self.last_price
 
     def setup_debug_controls(self):
         debug_frame = tk.Frame(self.root, bg="#2c2c2c")
@@ -396,6 +413,7 @@ class ChatGUI:
             f"Секрет: {self.model.secretExposed}\n"
         )
         self.debug_window.insert(tk.END, debug_info)
+
 
     def adjust_attitude(self, amount):
         self.model.adjust_attitude(amount)

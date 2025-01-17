@@ -9,6 +9,7 @@ import datetime
 import time
 from g4f.client import Client
 import re
+import shutil
 
 
 def add_temporary_system_message(messages, content):
@@ -185,7 +186,7 @@ class ChatModel:
 
         # Логика для раскрытия секрета
         elif (self.attitude <= 10 or self.secretExposed) and not self.secretExposedFirst:
-            self._reveal_secret()
+            self._reveal_secret(messages)
 
         # Обновление текущего настроения
         timed_system_message = self._generate_timed_system_message()
@@ -251,13 +252,18 @@ class ChatModel:
         self.systemMessages.insert(0, {"role": "system", "content": f"{self.player}\n"})
         self.systemMessages.insert(0, {"role": "system", "content": f"{self.response_structure}"})
 
+        if self.nearObjects != "":
+            print(self.nearObjects)
+            self.systemMessages.insert(0, {"role": "system",
+                                           "content": f"В радиусе 7 метров от тебя следующие игровые объекты (это дерево объектов) {self.nearObjects}"})
+
     def _start_playing_with_player(self):
         """Игровая логика, когда персонаж начинает играть с игроком"""
         print("Играет с игроком в якобы невиновную")
         self.PlayingFirst = True
         self.MitaMainBehaviour = {"role": "system", "content": f"{self.mainPlaying}\n"}
 
-    def _reveal_secret(self):
+    def _reveal_secret(self, messages):
         """Логика раскрытия секрета"""
         print("Перестала играть вообще")
         self.secretExposedFirst = True
@@ -267,7 +273,7 @@ class ChatModel:
         }
         self.MitaExamples = {"role": "system", "content": f"{self.examplesLongCrazy}\n"}
         system_message = {"role": "system", "content": f"{self.SecretExposed}"}
-        self.systemMessages.append(system_message)
+        add_temporary_system_message(messages, system_message)
         system_message = {"role": "system", "content": f"{self.mita_history}\n"}
         self.systemMessages.append(system_message)
 
@@ -276,6 +282,7 @@ class ChatModel:
         return {
             "role": "system",
             "content": (f"Твои характеристики. {self.variableEffects}"
+                        f"Конкретно сейчас они следующие: "
                         f"Отношение: {self.attitude}/100."
                         f"Стресс: {self.stress}/100."
                         f"Скука: {self.boredom}/100."
@@ -287,19 +294,17 @@ class ChatModel:
         """Обработка пользовательского ввода и добавление сообщений"""
         date_now = datetime.datetime.now().replace(microsecond=0)
 
-
         distance_message = f"Текущее время: {date_now}. Расстояние до игрока {self.distance}. Тебе следует подойти, оно больше 10 "
 
         if self.distance == 0:
             distance_message = f"Текущее время: {date_now}. Расстояние до игрока ? "
 
         # Проверяем правильность вызова get_room_name
-        distance_message += f"Ты находишься в {self.get_room_name( int(self.roomMita))}, игрок в {self.get_room_name(int(self.roomPlayer))}."
-        if self.nearObjects !="":
-            print( self.nearObjects )
+        distance_message += f"Ты находишься в {self.get_room_name(int(self.roomMita))}, игрок в {self.get_room_name(int(self.roomPlayer))}."
+        if self.nearObjects != "":
+            print(self.nearObjects)
             distance_message += f"В радиусе 7 метров от тебя следующие игровые объекты (это дерево объектов) {self.nearObjects}"
         messages.append({"role": "system", "content": distance_message})
-
 
         if system_input != "":
             messages.append({"role": "system", "content": system_input})
@@ -308,7 +313,7 @@ class ChatModel:
 
         return messages
 
-    def get_room_name(self,room_id):
+    def get_room_name(self, room_id):
         # Сопоставление ID комнаты с её названием
         room_names = {
             0: "Кухня",  # Кухня
@@ -341,7 +346,7 @@ class ChatModel:
             print("MitaMainBehaviour успешно добавлен.")
 
         # Добавляем MitaLongMemory, если это словарь и ключ "Role" существует и его значение не пустое
-        if isinstance(self.MitaLongMemory, dict) and self.MitaLongMemory.get("Role") not in [None, ""]:
+        if isinstance(self.MitaLongMemory, dict):
             combined_messages.append(self.MitaLongMemory)
             print(self.MitaLongMemory)
             print("MitaLongMemory успешно добавлен.")
@@ -362,6 +367,10 @@ class ChatModel:
 
     def _generate_chat_response(self, combined_messages):
         """Генерация ответа с помощью клиента"""
+        save_combined_messages(combined_messages)
+        self.gui.last_price = calculate_cost_for_combined_messages(self,combined_messages)
+        print(self.gui.last_price)
+
         completion = self.client.chat.completions.create(
             model="gpt-4o-mini",
             messages=combined_messages,
@@ -420,13 +429,13 @@ class ChatModel:
                     add_temporary_system_message(messages, "Игрок был не распилен, произошла ошибка")
 
                     #if self.gui:
-                     #   self.gui.close_app()
+                    #   self.gui.close_app()
 
                 elif command == "Выключить игрока":
                     add_temporary_system_message(messages, "Игрок был отпавлен в главное меню, но скоро он вернется...")
 
                     #if self.gui:
-                     #   self.gui.close_app()
+                    #   self.gui.close_app()
 
                 else:
                     # Обработка неизвестных команд
@@ -460,6 +469,7 @@ class ChatModel:
         :return: Обработанный ответ.
         """
         if self.MitaLongMemory == {}:
+            print("MitaLongMemory создана с  нуля тк {}")
             self.MitaLongMemory = {"role": "system", "content": f" ДолгаяПамять<  >КонецДолгойПамяти "}
         # Регулярное выражение для поиска тегов <+h>...</+h> или <#h>...</#h>
         memory_pattern = r"<([+#]h)>(.*?)<\/h>"
@@ -529,52 +539,51 @@ class ChatModel:
             return response
         return response
 
-    def process_commands(self, response, messages):
-        """
-        Обрабатывает команды типа <c>...</c> в ответе.
-        Команды могут быть: "Достать бензопилу", "Выключить игрока" и другие.
-        """
-        start_tag = "<c>"
-        end_tag = "</c>"
-        search_start = 0  # Указатель для поиска новых команд
+    def reload_promts(self):
+        self.common = self.load_text_from_file("Promts/Main/common.txt")
+        self.main = self.load_text_from_file("Promts/Main/main.txt")
 
-        while start_tag in response[search_start:] and end_tag in response[search_start:]:
-            try:
-                # Находим команду
-                start_index = response.index(start_tag, search_start) + len(start_tag)
-                end_index = response.index(end_tag, start_index)
-                command = response[start_index:end_index]
+        self.player = self.load_text_from_file("Promts/Main/player.txt")
+        self.mainPlaying = self.load_text_from_file("Promts/Main/mainPlaing.txt")
+        self.mainCrazy = self.load_text_from_file("Promts/Main/mainCrazy.txt")
 
-                # Логируем текущую команду
-                print(f"Обработка команды: {command}")
+        self.examplesLong = self.load_text_from_file("Promts/Context/examplesLong.txt")
+        self.examplesLongCrazy = self.load_text_from_file("Promts/Context/examplesLongCrazy.txt")
 
-                # Обработка команды
-                if command == "Достать бензопилу":
-                    add_temporary_system_message(messages, "Игрок был распилен, но скоро он вернется...")
+        self.world = self.load_text_from_file("Promts/Context/world.txt")
+        self.mita_history = self.load_text_from_file("Promts/Context/mita_history.txt")
+        self.variableEffects = self.load_text_from_file("Promts/Structural/VariablesEffects.txt")
+        self.response_structure = self.load_text_from_file("Promts/Structural/response_structure.txt")
+        self.SecretExposed = self.load_text_from_file("Promts/Events/SecretExposed.txt")
 
-                    if self.gui:
-                        self.gui.close_app()
+        self.systemMessages.clear()
 
-                elif command == "Выключить игрока":
-                    add_temporary_system_message(messages, "Игрок был выключен, но скоро он вернется...")
+        self.systemMessages.append({"role": "system", "content": f"{self.response_structure}\n"})
+        self.systemMessages.append({"role": "system", "content": f"{self.common}\n"})
+        self.systemMessages.append({"role": "system", "content": f"{self.player}\n"})
 
-                    if self.gui:
-                        self.gui.close_app()
-                elif command == "Продолжить фразу":
-                    self.repeatResponse = True
-                else:
-                    # Обработка неизвестных команд
-                    add_temporary_system_message(messages, f"Неизвестная команда: {command}")
-                    print(f"Неизвестная команда: {command}")
+        if self.secretExposed:
+            self.MitaMainBehaviour = {"role": "system", "content": f"{self.mainCrazy}"}
+            self.MitaExamples = {"role": "system", "content": f"{self.examplesLongCrazy}\n"}
 
-                # Сдвигаем указатель поиска на следующий символ после текущей команды
-                search_start = end_index + len(end_tag)
+            system_message = {"role": "system", "content": f"{self.mita_history}\n"}
+            self.systemMessages.append(system_message)
+        elif self.attitude < 50:
+            self.MitaMainBehaviour = {"role": "system", "content": f"{self.mainPlaying}"}
+        else:
+            self.MitaMainBehaviour = {"role": "system", "content": f"{self.main}"}
 
-            except ValueError as e:
-                print(f"Ошибка обработки команды: {e}")
-                break
-
-        return response
+    def save_history_patter(self, messages, current_info):
+        self.save_history({
+            'messages': messages,
+            'currentInfo': current_info,
+            # Сохраняем переменные в историю
+            'attitude': self.attitude,
+            'boredom': self.boredom,
+            'stress': self.stress,
+            'secretExposed': self.secretExposed,
+            'secretExposedFirst': self.secretExposedFirst
+        })
 
     def load_history(self):
         """Загружаем историю из файла, создаем пустую структуру, если файл пуст или не существует."""
@@ -610,28 +619,6 @@ class ChatModel:
             print("Ошибка загрузки истории")
             return self._default_history()
 
-    def update_memory_in_history(self):
-        """
-        Сохраняет измененную память (например, MitaLongMemory) в историю.
-        """
-        history_data = self.load_history()
-        current_info = history_data.get('currentInfo', {})
-        current_info['MitaLongMemory'] = self.MitaLongMemory
-
-        # Обновляем историю с новыми данными
-        self.save_history({
-            'messages': history_data.get('messages', []),
-            'currentInfo': current_info,
-            'MitaSystemMessages': history_data.get('MitaSystemMessages', []),
-
-            # Сохраняем переменные в историю
-            'attitude': self.attitude,
-            'boredom': self.boredom,
-            'stress': self.stress,
-            'secretExposed': self.secretExposed,
-            'secretExposedFirst': self.secretExposedFirst
-        })
-
     def save_history(self, data):
         """Сохраняем историю в файл с явной кодировкой utf-8."""
         # Убедимся, что структура данных включает 'messages', 'currentInfo' и 'MitaSystemMessages'
@@ -649,6 +636,25 @@ class ChatModel:
 
         with open(self.history_file, 'w', encoding='utf-8') as f:
             json.dump(history_data, f, ensure_ascii=False, indent=4)
+
+    def save_chat_history(self):
+        # Имя исходного файла
+        source_file = "chat_history.json"
+        # Папка для сохранения историй
+        target_folder = "SavedHistories"
+        # Проверяем, существует ли папка SavedHistories, и создаём её, если нет
+        os.makedirs(target_folder, exist_ok=True)
+
+        # Формируем имя файла с таймингом
+        timestamp = datetime.datetime.now().strftime("%d.%m.%Y_%H.%M")
+        target_file = f"chat_history_{timestamp}.json"
+
+        # Полный путь к новому файлу
+        target_path = os.path.join(target_folder, target_file)
+
+        # Копируем файл
+        shutil.copy(source_file, target_path)
+        print(f"Файл сохранён как {target_path}")
 
     def clear_history(self):
         print("ОЧИСТКА ИСТОРИИ!!!")
@@ -758,3 +764,65 @@ def load_text_from_file(filename):
     except Exception as e:
         print(f"Ошибка при чтении файла {filename}: {e}")
         return ""
+
+
+def save_combined_messages(combined_messages, output_folder="SavedMessages"):
+    """
+    Сохраняет combined_messages в отдельный JSON-файл.
+
+    Args:
+        combined_messages (list): Список сообщений для сохранения.
+        output_folder (str): Папка для сохранения файла. По умолчанию "SavedMessages".
+    """
+    import os
+
+    # Убедимся, что папка для сохранения существует
+    os.makedirs(output_folder, exist_ok=True)
+
+    # Генерация имени файла с текущей датой и временем
+    #timestamp = datetime.datetime.now().strftime("%d.%m.%Y_%H.%M")
+    file_name = f"combined_messages.json"
+    file_path = os.path.join(output_folder, file_name)
+
+    # Сохраняем combined_messages в JSON
+    with open(file_path, 'w', encoding='utf-8') as file:
+        json.dump(combined_messages, file, ensure_ascii=False, indent=4)
+
+    print(f"Сообщения сохранены в файл: {file_path}")
+
+
+def calculate_cost_for_combined_messages(self, combined_messages):
+    """
+    Рассчитывает количество токенов и стоимость для всех сообщений в combined_messages.
+
+    Args:
+        combined_messages (list): Список сообщений (пример: [{"role": "user", "content": "text"}, ...]).
+
+    Returns:
+        tuple: Количество токенов и стоимость.
+        :param self:
+    """
+    # Считаем токены для всех сообщений
+    token_count = self.count_tokens(combined_messages)
+
+    # Рассчитываем стоимость
+    cost = (token_count / 1000) * self.cost_input_per_1000
+
+    return f"Токенов {token_count} Цена {cost}"
+
+
+def count_tokens(self, messages):
+    """
+    Подсчитывает количество токенов в сообщениях.
+
+    Args:
+        messages (list): Список сообщений.
+
+    Returns:
+        int: Общее количество токенов.
+        :param self:
+    """
+    return sum(
+        len(self.tokenizer.encode(msg["content"]))
+        for msg in messages if isinstance(msg, dict) and "content" in msg
+    )
