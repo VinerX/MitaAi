@@ -30,3 +30,18 @@ Dont    GameController/Player/FixHead/MainCamera/
 
 World/Act/ContinueScene ТриггерТут подвала
 World/Quests/Quest2 HideAndSeek/Animation Killer
+
+
+            // Находим нож
+            Transform knifeTransform = worldBasement.Find(knifePath);
+            if (knifeTransform == null)
+            {
+                MelonLogger.Msg("Knife object not found.");
+                yield break;
+            }
+
+            GameObject knife = knifeTransform.gameObject;
+
+            // Перемещаем нож к Mita
+            GameObject.Instantiate(knife, Mita.transform);
+            MelonLogger.Msg("Knife instantiated on Mita.");
