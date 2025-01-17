@@ -273,8 +273,7 @@ class ChatModel:
             "content": f"{self.mainCrazy}\n{self.response_structure}"
         }
         self.MitaExamples = {"role": "system", "content": f"{self.examplesLongCrazy}\n"}
-        system_message = {"role": "system", "content": f"{self.SecretExposed}"}
-        add_temporary_system_message(messages, system_message)
+        add_temporary_system_message(messages, f"{self.SecretExposed}")
         system_message = {"role": "system", "content": f"{self.mita_history}\n"}
         self.systemMessages.append(system_message)
 
