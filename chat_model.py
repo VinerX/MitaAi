@@ -61,6 +61,7 @@ class ChatModel:
         self.roomPlayer = -1
         self.roomMita = -1
         self.nearObjects = ""
+        self.LongMemoryRememberCount = 0
 
         self.secretExposed = False
         self.secretExposedFirst = False
@@ -212,18 +213,18 @@ class ChatModel:
         try:
             response = self._generate_chat_response(combined_messages)
 
+            response_message = {
+                "role": "assistant",
+                "content": response
+            }
+            messages.append(response_message)
+
             # Процессинг ответа: изменяем показатели и сохраняем историю
             response = self.process_response(user_input, response, messages)
 
             current_info.update({
                 'MitaLongMemory': self.MitaLongMemory
             })
-
-            response_message = {
-                "role": "assistant",
-                "content": response
-            }
-            messages.append(response_message)
 
             print("До фразы")
             self.gui.textToTalk = self.process_text_to_voice(response)
@@ -291,20 +292,29 @@ class ChatModel:
         }
 
     def _process_user_input(self, user_input, system_input, messages):
+        self.LongMemoryRememberCount += 1
+
         """Обработка пользовательского ввода и добавление сообщений"""
         date_now = datetime.datetime.now().replace(microsecond=0)
 
-        distance_message = f"Текущее время: {date_now}. Расстояние до игрока {self.distance}. Тебе следует подойти, оно больше 10 "
+        repeated_system_message = f"Время: {date_now}. до игрока {self.distance}м . Тебе следует подойти, оно больше 10 "
 
         if self.distance == 0:
-            distance_message = f"Текущее время: {date_now}. Расстояние до игрока ? "
+            repeated_system_message = f"Время: {date_now}. до игрока ? м. "
 
         # Проверяем правильность вызова get_room_name
-        distance_message += f"Ты находишься в {self.get_room_name(int(self.roomMita))}, игрок в {self.get_room_name(int(self.roomPlayer))}."
+        repeated_system_message += f"Ты находишься в {self.get_room_name(int(self.roomMita))}, игрок в {self.get_room_name(int(self.roomPlayer))}. "
         if self.nearObjects != "":
             print(self.nearObjects)
-            distance_message += f"В радиусе 7 метров от тебя следующие игровые объекты (это дерево объектов) {self.nearObjects}"
-        messages.append({"role": "system", "content": distance_message})
+            repeated_system_message += f"В радиусе 7 метров от тебя следующие игровые объекты (это дерево объектов) {self.nearObjects}"
+
+        if self.LongMemoryRememberCount % 3 == 0:
+            repeated_system_message += " Запомни факты за 3 сообщения пользователя <+h></h>"
+
+        if self.LongMemoryRememberCount % 3 == 6:
+            repeated_system_message += " Реструктуризируй память при необходимости <#h></h>"
+
+        messages.append({"role": "system", "content": repeated_system_message})
 
         if system_input != "":
             messages.append({"role": "system", "content": system_input})
@@ -347,6 +357,8 @@ class ChatModel:
 
         # Добавляем MitaLongMemory, если это словарь и ключ "Role" существует и его значение не пустое
         if isinstance(self.MitaLongMemory, dict):
+            if self.MitaLongMemory == {}:
+                self.MitaLongMemory = {"role": "system", "content": f" ДолгаяПамять<  >КонецДолгойПамяти "}
             combined_messages.append(self.MitaLongMemory)
             print(self.MitaLongMemory)
             print("MitaLongMemory успешно добавлен.")
@@ -368,7 +380,7 @@ class ChatModel:
     def _generate_chat_response(self, combined_messages):
         """Генерация ответа с помощью клиента"""
         save_combined_messages(combined_messages)
-        self.gui.last_price = calculate_cost_for_combined_messages(self,combined_messages)
+        self.gui.last_price = calculate_cost_for_combined_messages(self, combined_messages)
         print(self.gui.last_price)
 
         completion = self.client.chat.completions.create(
@@ -638,6 +650,7 @@ class ChatModel:
             json.dump(history_data, f, ensure_ascii=False, indent=4)
 
     def save_chat_history(self):
+        print("@!@#!23@#! КАКОГО ОНО ОТРАБОТАЛО??")
         # Имя исходного файла
         source_file = "chat_history.json"
         # Папка для сохранения историй
