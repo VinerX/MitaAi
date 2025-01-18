@@ -61,6 +61,11 @@ class ChatModel:
         self.roomPlayer = -1
         self.roomMita = -1
         self.nearObjects = ""
+        self.updated_info = ""
+
+        self.messagesToAppend = []
+        self.messagesToAppendLongLive = []
+
         self.LongMemoryRememberCount = 0
 
         self.secretExposed = False
@@ -296,16 +301,7 @@ class ChatModel:
         """Обработка пользовательского ввода и добавление сообщений"""
         date_now = datetime.datetime.now().replace(microsecond=0)
 
-        repeated_system_message = f"Время: {date_now}. до игрока {self.distance}м . Тебе следует подойти, оно больше 10 "
-
-        if self.distance == 0:
-            repeated_system_message = f"Время: {date_now}. до игрока ? м. "
-
-        # Проверяем правильность вызова get_room_name
-        repeated_system_message += f"Ты находишься в {self.get_room_name(int(self.roomMita))}, игрок в {self.get_room_name(int(self.roomPlayer))}. "
-        if self.nearObjects != "":
-            print(self.nearObjects)
-            repeated_system_message += f"В радиусе 7 метров от тебя следующие игровые объекты (это дерево объектов) {self.nearObjects}"
+        repeated_system_message = f"Время: {date_now}"
 
         if self.LongMemoryRememberCount % 3 == 0:
             repeated_system_message += " Запомни факты за 3 сообщения пользователя <+h></h>"
@@ -313,27 +309,23 @@ class ChatModel:
         if self.LongMemoryRememberCount % 3 == 6:
             repeated_system_message += " Реструктуризируй память при необходимости <#h></h>"
 
+        # Добавление сообщений, которые должны были быть
+        messages.extend(self.messagesToAppend)
+        self.messagesToAppend.clear()
+
         messages.append({"role": "system", "content": repeated_system_message})
 
         if system_input != "":
             messages.append({"role": "system", "content": system_input})
         if user_input != "":
             messages.append({"role": "user", "content": user_input})
-
         return messages
 
-    def get_room_name(self, room_id):
-        # Сопоставление ID комнаты с её названием
-        room_names = {
-            0: "Кухня",  # Кухня
-            1: "Зал",  # Главная комната
-            2: "Комната",  # Спальня
-            3: "Туалет",  # Туалет
-            4: "Подвал"  # Туалет
-        }
+    def write_message_in_history(self, message):
+        self.messagesToAppend.append({"role": "system", "content": message})
 
-        # Возвращаем название комнаты, если оно есть, иначе возвращаем сообщение о неизвестной комнате
-        return room_names.get(room_id, "?")
+    def write_message_in_history_long(self, message):
+        self.messagesToAppendLongLive.append({"role": "system", "content": message})
 
     def _combine_messages(self, messages, timed_system_message):
         """Комбинирование всех сообщений перед отправкой"""
@@ -363,6 +355,8 @@ class ChatModel:
             print("MitaLongMemory успешно добавлен.")
         else:
             print("MitaLongMemory не добавлен. Условие не выполнено.")
+
+        combined_messages.append({"role": "system", "content": self.updated_info})
 
         # Добавляем timed_system_message, если это словарь
         if isinstance(timed_system_message, dict):

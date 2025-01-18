@@ -1,8 +1,9 @@
 import socket
 import datetime
 
+
 class ChatServer:
-    def __init__(self, gui,chat_model, host='127.0.0.1', port=12345, passive_port=12346):
+    def __init__(self, gui, chat_model, host='127.0.0.1', port=12345, passive_port=12346):
         self.host = host
         self.port = port
         self.gui = gui
@@ -13,6 +14,7 @@ class ChatServer:
         self.passive_server_socket = None
         self.chat_model = chat_model
         self.MessagesToSay = list()
+
     def start(self):
         """Инициализирует и запускает сервер."""
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -38,34 +40,28 @@ class ChatServer:
             received_text = self.client_socket.recv(1024).decode('utf-8')
 
             # Разделяем текст и ссылку по "|||"
-            message, self.chat_model.distance, self.chat_model.roomPlayer, self.chat_model.roomMita,self.chat_model.nearObjects = received_text.split("|||")
+            message, isMessageSystem, one_system_message, new_long_system_message, self.chat_model.updated_info = received_text.split(
+                "|||")
 
-            response = ""
-            if message == "":
-                ...
-            elif message == "waiting":
-                if len(self.MessagesToSay)>0:
-                    response = self.MessagesToSay.pop(0)
-            elif message == "boring":
-                date_now = datetime.datetime.now().replace(microsecond=0)
-                response = self.generate_response("",f"Время {date_now}, Игрок долго молчит( Ты можешь что-то сказать или предпринять")
-                self.gui.insertDialog("",response)
-                print("Отправлено Мите на озвучку: " + response)
+            if one_system_message != "":
+                self.chat_model.write_message_in_history(one_system_message)
+            if new_long_system_message != "":
+                self.chat_model.write_message_in_history(new_long_system_message)
+
+            if isMessageSystem:
+                response = self.generate_response("", message)
             else:
-                # Если игрок отправил внутри игры, message его
-                response = self.generate_response(message,"")
-                #self.gui.insertDialog(message,response)
-                print("Отправлено Мите на озвучку: " + response)
-
+                response = self.generate_response(message, "")
 
             # Отправка ответа обратно клиенту
-            # Формируем сообщение через f-string с разделителем |||
-            #print(f"Попытка отправить путь к файлу{self.gui.patch_to_sound_file}")
-            message = f"{response}|||{self.gui.patch_to_sound_file}"
+            answer = f"{response}|||{self.gui.patch_to_sound_file}"
+
+            print(f"answer {answer}")
+
             self.gui.patch_to_sound_file = ""
 
             # Отправляем сообщение через сокет
-            self.client_socket.send(message.encode('utf-8'))
+            self.client_socket.send(answer.encode('utf-8'))
             self.gui.ConnectedToGame = True
             return True
         except Exception as e:
@@ -76,17 +72,17 @@ class ChatServer:
                 self.client_socket.close()
             return False
 
-    def generate_response(self, input_text,system_input_text):
+    def generate_response(self, input_text, system_input_text):
         """Генерирует текст с помощью модели."""
         try:
-            response = self.chat_model.generate_response(input_text,system_input_text)
+            response = self.chat_model.generate_response(input_text, system_input_text)
             counter = 0
             #while self.chat_model.repeatResponse and counter<3:
-             #   response += self.chat_model.generate_response("", "")
-               # counter+=1
+            #   response += self.chat_model.generate_response("", "")
+            # counter+=1
 
-            if input_text!="":
-                self.gui.insertDialog(input_text,response)
+            if input_text != "":
+                self.gui.insertDialog(input_text, response)
         except Exception as e:
             print(f"Ошибка генерации ответа: {e}")
             response = "Произошла ошибка при обработке вашего сообщения."
