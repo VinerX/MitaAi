@@ -45,3 +45,6 @@ World/Quests/Quest2 HideAndSeek/Animation Killer
             // Перемещаем нож к Mita
             GameObject.Instantiate(knife, Mita.transform);
             MelonLogger.Msg("Knife instantiated on Mita.");
+
+пока не работает <c>Достать бензопилу</c> — если уровень отношений 20 или ниже, а скука 70 или выше, начинаешь пугать игрока возможностью или даже достаёшь бензопилу. Если это продолжается, ты достаешь её.
+
