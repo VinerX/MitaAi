@@ -123,8 +123,8 @@ class TelegramBotHandler:
         print("Ожидание ответа от бота...")
         response = None
         attempts = 0
-        await asyncio.sleep(0.7)
-        while attempts < 6:  # Попытки получения ответа
+        await asyncio.sleep(0.5)
+        while attempts <= 10:  # Попытки получения ответа
 
             async for message in self.client.iter_messages(self.silero_bot, limit=1):
                 if message.media and isinstance(message.media, MessageMediaDocument):
