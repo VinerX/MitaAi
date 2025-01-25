@@ -5,3 +5,4 @@ __pycache__/chat_model.cpython-312.pyc
 *.json
 *.session
 *.session-journal
+/MitaAiC\#
